@@ -1,0 +1,37 @@
+﻿<UserControl x:Class="TennisHighlightsGUI.WPF.ProgressBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:TennisHighlightsGUI.WPF"
+             mc:Ignorable="d"
+             d:DesignHeight="150"
+             d:DesignWidth="150"
+             x:Name="local">
+    <d:DesignerProperties.DesignStyle>
+        <Style TargetType="UserControl">
+            <Setter Property="Background"
+                    Value="White" />
+        </Style>
+    </d:DesignerProperties.DesignStyle>
+    <StackPanel Margin="0,10,0,0">
+        <TextBlock FontWeight="Bold"
+                   Text="PROGRESS" />
+        <TextBlock Text="{Binding Path=ProgressDetails, ElementName=local, FallbackValue=ProgressDetails}" />
+        <ProgressBar Margin="0,5,0,0"
+                     Height="20"
+                     Minimum="0"
+                     Maximum="100"
+                     Value="{Binding ProgressPercent, ElementName=local, FallbackValue=50}" />
+        <Grid>
+            <TextBlock Text="Remaining: " />
+            <TextBlock HorizontalAlignment="Right"
+                       Text="{Binding RemainingSeconds, ElementName=local, StringFormat=hh\\:mm\\:ss, FallbackValue=00:00:00}" />
+        </Grid>
+        <Grid>
+            <TextBlock Text="Elapsed: " />
+            <TextBlock HorizontalAlignment="Right"
+                       Text="{Binding ElapsedSeconds, ElementName=local, StringFormat=hh\\:mm\\:ss, FallbackValue=00:00:00}" />
+        </Grid>
+    </StackPanel>
+</UserControl>

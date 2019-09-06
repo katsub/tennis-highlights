@@ -1,0 +1,214 @@
+﻿<UserControl x:Class="TennisHighlightsGUI.RallySelectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:TennisHighlightsGUI"
+             xmlns:InWit="clr-namespace:InWit.WPF.MultiRangeSlider;assembly=InWit.WPF.MultiRangeSlider"
+             xmlns:thwpf="clr-namespace:TennisHighlightsGUI.WPF"
+             mc:Ignorable="d"
+             x:Name="rallySelectionView"
+             d:DesignHeight="450"
+             d:DesignWidth="800">
+    <UserControl.Resources>
+        <thwpf:BoolToNotBoolConverter x:Key="boolToNotBool" />
+        <BooleanToVisibilityConverter x:Key="boolToVis" />
+        <local:CustomBooleanToVisibilityConverter x:Key="notBoolToVis"
+                                                  True="Collapsed"
+                                                  False="Visible" />
+        <Style TargetType="{x:Type Button}">
+            <Setter Property="IsEnabled"
+                    Value="{Binding IsConverting, Converter={StaticResource boolToNotBool}}" />
+        </Style>
+        <Style TargetType="{x:Type CheckBox}">
+            <Setter Property="IsEnabled"
+                    Value="{Binding DataContext.IsConverting, ElementName=rallySelectionView, Converter={StaticResource boolToNotBool}}" />
+        </Style>
+        <Style TargetType="{x:Type Button}"
+               x:Key="cancelButton" />
+    </UserControl.Resources>
+    <Grid Margin="10,10,10,10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="160" />
+        </Grid.ColumnDefinitions>
+        <Image Source="{Binding PreviewImage}" />
+        <Grid Margin="5,0,0,0"
+              Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Text="Select rallies:"
+                       FontWeight="Bold"
+                       FontSize="16" />
+            <Grid Grid.Row="1"
+                  Margin="0,5,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="5" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button Content="All"
+                        Background="LightSkyBlue"
+                        Command="{Binding SelectAllCommand}" />
+                <Button Content="None"
+                        Grid.Column="2"
+                        Background="LightSkyBlue"
+                        Command="{Binding SelectNoneCommand}" />
+            </Grid>
+            <ListView Grid.Row="2"
+                      Margin="0,5,0,0"
+                      MaxWidth="170"
+                      ItemsSource="{Binding Rallies}"
+                      SelectedItem="{Binding SelectedRally}"
+                      VerticalContentAlignment="Top"
+                      HorizontalContentAlignment="Stretch"
+                      ScrollViewer.VerticalScrollBarVisibility="Visible"
+                      ScrollViewer.CanContentScroll="False">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox IsChecked="{Binding IsSelected}" />
+                                <TextBlock Margin="5,0,0,0"
+                                           Text="{Binding OriginalIndex}" />
+                            </StackPanel>
+                            <TextBlock HorizontalAlignment="Right"
+                                       Foreground="Gray"
+                                       Text="{Binding DurationSeconds, StringFormat=hh\\:mm\\:ss, FallbackValue=00:00:00}" />
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+            <StackPanel Grid.Row="3"
+                        Margin="0,5,0,0">
+                <TextBlock FontWeight="Bold"
+                           Text="STATS" />
+                <Grid>
+                    <TextBlock Text="Selected rallies: " />
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right">
+                        <TextBlock Text="(" />
+                        <TextBlock Text="{Binding SelectedRalliesCount, FallbackValue=0}" />
+                        <TextBlock Text="/" />
+                        <TextBlock Text="{Binding TotalRalliesCount, FallbackValue=0}" />
+                        <TextBlock Text=")" />
+                    </StackPanel>
+                </Grid>
+                <Grid>
+                    <TextBlock Text="Total duration: " />
+                    <TextBlock HorizontalAlignment="Right"
+                               Text="{Binding TotalDuration, StringFormat=hh\\:mm\\:ss, FallbackValue=00:00:00}" />
+                </Grid>
+            </StackPanel>
+            <thwpf:ProgressBar Grid.Row="4"
+                               ProgressDetails="{Binding ProgressDetails}"
+                               ProgressPercent="{Binding ProgressPercent}"
+                               RemainingSeconds="{Binding RemainingSeconds}"
+                               ElapsedSeconds="{Binding ElapsedSeconds}" />
+            <StackPanel Margin="0,5,0,0"
+                        Grid.Row="5">
+                <Button Content="Join selected rallies"
+                        Background="LawnGreen"
+                        Visibility="{Binding IsConverting, Converter={StaticResource notBoolToVis}}"
+                        Command="{Binding ConvertCommand}"
+                        ToolTip="Joins the selected rallies into a single video that will be saved into the selected folder" />
+                <Button Content="Cancel conversion"
+                        Background="OrangeRed"
+                        Style="{StaticResource cancelButton}"
+                        Visibility="{Binding IsConverting, Converter={StaticResource boolToVis}, FallbackValue=Collapsed}"
+                        Command="{Binding CancelConversionCommand}" />
+            </StackPanel>
+            <Button Margin="0,5,0,0"
+                    Grid.Row="6"
+                    Content="Back"
+                    Background="LightSkyBlue"
+                    Command="{Binding BackToMainCommand}" />
+        </Grid>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <MediaElement Name="mePlayer"
+                          ScrubbingEnabled="True"
+                          Source="{Binding ChosenFileUri}"
+                          LoadedBehavior="Manual" />
+            <StatusBar Grid.Row="1">
+                <StatusBarItem>
+                    <TextBlock Text="{Binding CurrentPositionSeconds, StringFormat=hh\\:mm\\:ss, FallbackValue=00:00:00}" />
+                </StatusBarItem>
+                <StatusBarItem Grid.Column="1"
+                               HorizontalContentAlignment="Stretch">
+                    <InWit:WitMultiRangeSlider x:Name="multiSlider"
+                                               PreviewMouseDown="WitMultiRangeSlider_PreviewMouseDown"
+                                               PreviewMouseUp="WitMultiRangeSlider_PreviewMouseUp"
+                                               Minimum="{Binding MinStart}"
+                                               Maximum="{Binding MaxStop}">
+                        <InWit:WitMultiRangeSlider.Items>
+                            <InWit:WitMultiRangeSliderItem PreviewMouseDown="WitMultiRangeSliderItem_PreviewMouseDown"
+                                                           PreviewMouseUp="WitMultiRangeSliderItem_PreviewMouseUp"
+                                                           LeftValue="{Binding SliderStart, Mode=TwoWay}"
+                                                           RightValue="{Binding CurrentPosition, Mode=TwoWay}" />
+                            <InWit:WitMultiRangeSliderItem PreviewMouseDown="WitMultiRangeSliderItem_PreviewMouseDown_1"
+                                                           PreviewMouseUp="WitMultiRangeSliderItem_PreviewMouseUp_1"
+                                                           LeftValue="{Binding CurrentPosition, Mode=TwoWay}"
+                                                           RightValue="{Binding SliderStop, Mode=TwoWay}" />
+                        </InWit:WitMultiRangeSlider.Items>
+                    </InWit:WitMultiRangeSlider>
+                </StatusBarItem>
+            </StatusBar>
+            <Grid Margin="0,5,0,0"
+                  Grid.Row="2"
+                  Background="White">
+                <Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Split"
+                                ToolTip="Splits the current rally into a rally beginning at its start position and ending at its current position, and a rally beginning at its current position and ending on its end position"
+                                Margin="10,0,0,0"
+                                Command="{Binding SplitCommand}" />
+                        <Button Content="Join next"
+                                ToolTip="Joins the currently selected rally with the next point in the list, if the end of this rally is less than 10 seconds apart from the start of the next rally"
+                                Margin="10,0,0,0"
+                                Command="{Binding JoinNextCommand}" />
+                        <Button Content="Export"
+                                Margin="10,0,0,0"
+                                Command="{Binding ExportCommand}" />
+                    </StackPanel>
+                    <StackPanel HorizontalAlignment="Center">
+                        <Button Content="Play"
+                                Command="{Binding PlayCommand}"
+                                Visibility="{Binding IsPlaying, Converter={StaticResource notBoolToVis}}" />
+                        <Button Content="Pause"
+                                Command="{Binding PauseCommand}"
+                                Visibility="{Binding IsPlaying, Converter={StaticResource boolToVis}, FallbackValue=Collapsed}" />
+                    </StackPanel>
+                </Grid>
+                <StackPanel Margin="0,0,5,0"
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right">
+                    <Button Content="-"
+                            Width="20"
+                            Margin="0,0,10,0"
+                            Command="{Binding DecreaseSpeedCommand}" />
+                    <Button Content="+"
+                            Width="20"
+                            Margin="0,0,10,0"
+                            Command="{Binding IncreaseSpeedCommand}" />
+                    <TextBlock Margin="0,2,0,0"
+                               Text="{Binding PlaySpeed, StringFormat={}{0:0.00}, FallbackValue=1.0}" />
+                    <TextBlock Margin="0,2,0,0"
+                               Text="x" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

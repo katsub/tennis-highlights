@@ -1,0 +1,30 @@
+﻿<UserControl x:Class="InWit.WPF.MultiRangeSlider.WitMultiRangeSlider"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" d:DesignHeight="300" d:DesignWidth="300" 
+             Visibility="Collapsed" Loaded="WitMultiRangeSliderLoaded">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="WitMultiRangeSliderResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid x:Name="Root">
+        <Border x:Name="TrackBackground" BorderBrush="{StaticResource HorizontalSliderTrackNormalBorder}" BorderThickness="1" Background="{StaticResource HorizontalSliderTrackNormalBackground}" 
+                CornerRadius="1" Height="4.0"  Grid.Row="1" VerticalAlignment="center" MouseLeftButtonDown="SliderBarMouseLeftButtonDown">
+            <Border.Style>
+                <Style TargetType="{x:Type Border}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding }"/>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Canvas >
+                <Rectangle x:Name="PART_SelectionRange" Fill="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" Height="4.0" Stroke="{DynamicResource {x:Static SystemColors.ControlDarkDarkBrushKey}}" StrokeThickness="1.0" Visibility="Hidden"/>
+            </Canvas>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Platforms>AnyCPU;x64</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\InWit.WPF.MultiRangeSlider\InWit.WPF.MultiRangeSlider.csproj" />
+    <ProjectReference Include="..\TennisHighlights\TennisHighlights.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="MainWindow.xaml.cs">
+      <SubType>Code</SubType>
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="RallyGraph\RallyGraphWindow.xaml.cs">
+      <DependentUpon>RallyGraphWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="RallySelectionView.xaml.cs">
+      <DependentUpon>RallySelectionView.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="WPF\PageSwitcher.xaml.cs">
+      <DependentUpon>PageSwitcher.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="WPF\ProgressBar.xaml.cs">
+      <DependentUpon>ProgressBar.xaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="MainWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="RallyGraph\RallyGraphWindow.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="RallySelectionView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="WPF\PageSwitcher.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="WPF\ProgressBar.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+
+</Project>

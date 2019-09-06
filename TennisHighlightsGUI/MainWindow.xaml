@@ -1,0 +1,175 @@
+﻿<UserControl x:Class="TennisHighlightsGUI.MainWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:TennisHighlightsGUI"
+             xmlns:thwpf="clr-namespace:TennisHighlightsGUI.WPF"
+             mc:Ignorable="d">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <thwpf:BoolToNotBoolConverter x:Key="boolToNotBool" />
+            <BooleanToVisibilityConverter x:Key="boolToVis" />
+            <local:CustomBooleanToVisibilityConverter x:Key="notBoolToVis"
+                                                      True="Collapsed"
+                                                      False="Visible" />
+            <Style TargetType="{x:Type Button}">
+                <Setter Property="IsEnabled"
+                        Value="{Binding IsConverting, Converter={StaticResource boolToNotBool}}" />
+            </Style>
+            <Style TargetType="{x:Type Button}"
+                   x:Key="cancelButton" />
+            <Style TargetType="{x:Type CheckBox}">
+                <Setter Property="IsEnabled"
+                        Value="{Binding IsConverting, Converter={StaticResource boolToNotBool}}" />
+            </Style>
+            <Style TargetType="{x:Type TextBox}">
+                <Setter Property="IsEnabled"
+                        Value="{Binding IsConverting, Converter={StaticResource boolToNotBool}}" />
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <d:DesignerProperties.DesignStyle>
+        <Style TargetType="UserControl">
+            <Setter Property="Background"
+                    Value="White" />
+        </Style>
+    </d:DesignerProperties.DesignStyle>
+    <Grid Margin="5,0,0,5">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="173" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid Margin="0,0,0,5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox Text="{Binding ChosenFile}"
+                     Padding="0,2,0,2"
+                     Margin="0,5,0,0"
+                     Background="LightGray"
+                     IsReadOnly="True"
+                     HorizontalAlignment="Stretch" />
+            <Button Grid.Column="1"
+                    Margin="5,5,0,0"
+                    Padding="2,2,2,2"
+                    Command="{Binding OpenFileCommand}"
+                    Content="Open file..." />
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox Text="{Binding OutputFolder}"
+                         Margin="0,5,0,0"
+                         Padding="0,2,0,2"
+                         Background="LightGray"
+                         IsReadOnly="True"
+                         HorizontalAlignment="Stretch" />
+                <Button Margin="5,5,0,0"
+                        Grid.Column="1"
+                        Padding="2,2,2,2"
+                        Command="{Binding OpenOutputFolderCommand}"
+                        Content="Open" />
+            </Grid>
+            <Button Grid.Column="1"
+                    Grid.Row="1"
+                    Margin="5,5,0,0"
+                    Padding="2,2,2,2"
+                    Command="{Binding ChooseOutputFolderCommand}"
+                    Content="Output folder..." />
+        </Grid>
+        <Image  Grid.Row="1"
+                Source="{Binding PreviewImage}" />
+        <StackPanel Margin="5,0,5,0"
+                    Grid.Row="1"
+                    Grid.Column="1">
+            <StackPanel>
+                <TextBlock FontWeight="Bold"
+                           Text="SETTINGS" />
+                <CheckBox IsChecked="{Binding Settings.General.FilterRalliesByDuration}"
+                          Content="Filter rallies by duration" />
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox IsChecked="{Binding Settings.General.UseCustomStartFrame}"
+                              Content="Start at " />
+                    <TextBox Width="20"
+                             Height="15"
+                             Padding="0,-2,0,0"
+                             thwpf:NumberOnlyBehaviour.IsEnabled="True"
+                             thwpf:AutoSelectAll.IsEnabled="True"
+                             Text="{Binding Settings.General.CustomStartMinute}" />
+                    <TextBlock Text=" minutes"
+                               IsEnabled="{Binding IsConverting, Converter={StaticResource boolToNotBool}}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox IsChecked="{Binding Settings.General.UseCustomStopFrame}"
+                              Content="Stop at " />
+                    <TextBox Width="20"
+                             Height="15"
+                             Padding="0,-2,0,0"
+                             thwpf:AutoSelectAll.IsEnabled="True"
+                             thwpf:NumberOnlyBehaviour.IsEnabled="True"
+                             Text="{Binding Settings.General.CustomStopMinute}" />
+                    <TextBlock Text=" minutes"
+                               IsEnabled="{Binding IsConverting, Converter={StaticResource boolToNotBool}}"/>
+                </StackPanel>
+                <CheckBox IsChecked="{Binding Settings.General.DisableImagePreview}"
+                          Content="Disable image preview" />
+                <CheckBox IsChecked="{Binding Settings.General.AutoJoinAll}"
+                          ToolTip="When conversion is over, automatically joins all rallies and exports them"
+                          Content="Auto join all and export" />
+            </StackPanel>
+            <thwpf:ProgressBar ProgressDetails="{Binding ProgressDetails}"
+                               ProgressPercent="{Binding ProgressPercent}"
+                               RemainingSeconds="{Binding RemainingSeconds}"
+                               ElapsedSeconds="{Binding ElapsedSeconds}" />
+            <StackPanel Margin="0,10,0,0">
+                <Button Margin="0,10,0,0"
+                        Background="LawnGreen"
+                        Visibility="{Binding IsConverting, Converter={StaticResource notBoolToVis}}"
+                        IsEnabled="{Binding CanConvert}"
+                        Command="{Binding ConvertCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Convert" />
+                    </StackPanel>
+                </Button>
+                <Button Margin="0,10,0,0"
+                        Content="Cancel conversion"
+                        Background="OrangeRed"
+                        Style="{StaticResource cancelButton}"
+                        Visibility="{Binding IsConverting, Converter={StaticResource boolToVis}, FallbackValue=Collapsed}"
+                        Command="{Binding CancelConversionCommand}" />
+            </StackPanel>
+            <StackPanel Margin="0,10,0,0">
+                <Button Margin="0,0,0,0"
+                        Content="Regenerate rallies"
+                        Background="Orange"
+                        Visibility="{Binding CanRegenerateRallies, Converter={StaticResource boolToVis}}"
+                        Command="{Binding RegenerateRalliesCommand}" />
+            </StackPanel>
+            <!--
+            <StackPanel Margin="0,10,0,0">
+                <TextBlock FontWeight="Bold"
+                           Text="DEBUG" />
+                <Button Margin="0,5,0,0"
+                        Content="Open rally graph"
+                        Background="LightSkyBlue"
+                        Visibility="{Binding CanOpenRallyGraph, Converter={StaticResource boolToVis}}"
+                        Command="{Binding OpenRallyGraphCommand}" />
+                <Button Margin="0,5,0,0"
+                        Content="Generate gizmo frames"
+                        Background="LightSkyBlue"
+                        Command="{Binding GenerateGizmoFramesCommand}" />
+            </StackPanel>-->
+        </StackPanel>
+    </Grid>
+</UserControl>
