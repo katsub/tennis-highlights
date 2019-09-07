@@ -239,6 +239,12 @@ namespace TennisHighlightsGUI
 
             Settings.Save();
 
+            if (Settings.General.RegenerateFrames)
+            {
+                ChosenFileLog.Balls.Clear();
+                ChosenFileLog.Rallies.Clear();
+            }
+
             var framesToProcess = Settings.General.GetFinalFrameToProcess(VideoInfo);
 
             //Indices start at 0, so we must subtract 1 from the frames count to have the correct index

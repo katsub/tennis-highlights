@@ -33,10 +33,6 @@ namespace TennisHighlights
         /// </summary>
         private int _currentFrameId;
         /// <summary>
-        /// The gizmo count, used for quickly writing debug images without worrying about their names
-        /// </summary>
-        private static int _gizmoCount = 0;
-        /// <summary>
         /// The settings
         /// </summary>
         private readonly BallDetectionSettings _settings;
@@ -105,6 +101,9 @@ namespace TennisHighlights
         private readonly Mat _timeAntiDeltaMat = new Mat();
         private readonly MatOfByte _bgGrey = new MatOfByte();
         private readonly MatOfByte _bgAntiGrey = new MatOfByte();
+        private readonly MatOfInt _labels = new MatOfInt();
+        private readonly MatOfDouble _centroids = new MatOfDouble();
+        private readonly MatOfShort _stats = new MatOfShort();
 
         /// <summary>
         /// Assigns the extraction.
@@ -163,7 +162,10 @@ namespace TennisHighlights
             _settings = settings;
             _onExtractionOver = onExtractionOver;
 
-            _gizmoMat = new MatOfByte3(_size.Height, _size.Width);
+            if (_drawGizmos || _drawPreviews)
+            {
+                _gizmoMat = new MatOfByte3(_size.Height, _size.Width);
+            }
         }
 
         /// <summary>
@@ -220,15 +222,36 @@ namespace TennisHighlights
             var maxDoubleCheckBallCenterSquaredDistance = _maxDoubleCheckBallCenterSquaredDistance.Value;
 
             //Erosion should delete noise, so absent balls should be removed from the already added candidates
-            var components = Cv2.ConnectedComponentsEx(mat, PixelConnectivity.Connectivity4);
+            var numberOfComponents = Cv2.ConnectedComponentsWithStats(mat, _labels, _stats, _centroids, PixelConnectivity.Connectivity4, MatType.CV_16U);
+
+            Span<double> x = stackalloc double[numberOfComponents];
+            Span<double> y = stackalloc double[numberOfComponents];
+
+            //GetIndexer (and the index itself) are very slow, and we're gonna access them a lot, so better cache it
+            var centroidIndexer = _centroids.GetIndexer();
+
+            for (int j = 0; j < numberOfComponents; j++)
+            {
+                x[j] = centroidIndexer[j, 0];
+                y[j] = centroidIndexer[j, 1];
+            }
 
             for (int i = potentialBalls.Count - 1; i >= 0; i--)
             {
                 var potentialBall = potentialBalls[i];
 
-                //If the potential ball cannot be found on this 'noiseless' mat, then it was added by noise that was deleted on the erosion
-                if (!components.Blobs.Any(b => Math.Pow(potentialBall.X - b.Centroid.X, 2)
-                                               + Math.Pow(potentialBall.Y - b.Centroid.Y, 2) < maxDoubleCheckBallCenterSquaredDistance))
+                var foundBall = false;
+
+                for (int j = 0; j < numberOfComponents; j++)
+                {
+                    if (Math.Pow(potentialBall.X - x[j], 2) + Math.Pow(potentialBall.Y - y[j], 2) < maxDoubleCheckBallCenterSquaredDistance)
+                    {
+                        foundBall = true;
+                        break;
+                    }
+                }
+
+                if (!foundBall)
                 {
                     potentialBalls.RemoveAt(i);
                 }
@@ -241,29 +264,42 @@ namespace TennisHighlights
         /// </summary>
         /// <param name="bgDiffMat">The bg difference mat.</param>
         /// <param name="playersBoundaries">The players boundaries.</param>
-        private void GetPotentialBalls(Mat bgDiffMat, out List<Accord.Point> potentialBalls)
+        private void GetPotentialBalls(MatOfByte bgDiffMat, out List<Accord.Point> potentialBalls)
         {
             var minPlayerArea = _settings.MinPlayerArea.Value;
-            var components = Cv2.ConnectedComponentsEx(bgDiffMat, PixelConnectivity.Connectivity4);
+            var numberOfComponents = Cv2.ConnectedComponentsWithStats(bgDiffMat, _labels, _stats, _centroids, PixelConnectivity.Connectivity4, MatType.CV_16U);
 
             potentialBalls = null;
 
-            foreach (var blob in components.Blobs)
+            if (numberOfComponents > 0)
             {
-                if (blob.Width < _size.Width || blob.Height < _size.Height)
+                var statsIndexer = _stats.GetIndexer();
+                MatIndexer<double> centroidIndexer = null;
+
+                for (int i = 0; i < numberOfComponents; i++)
                 {
-                    if (blob.Area < minPlayerArea && blob.Area > _dilationCircleArea)
+                    var width = statsIndexer[i, (int)ConnectedComponentsTypes.Width];
+                    var height = statsIndexer[i, (int)ConnectedComponentsTypes.Height];
+
+                    if (width < _size.Width || height < _size.Height)
                     {
-                        var roundness = (double)blob.Height / blob.Width;
+                        var area = statsIndexer[i, (int)ConnectedComponentsTypes.Area];
 
-                        if (roundness < 2d && roundness > 0.5d)
+                        if (area < minPlayerArea && area > _dilationCircleArea)
                         {
-                            if (potentialBalls == null)
-                            {
-                                potentialBalls = new List<Accord.Point>();
-                            }
+                            var roundness = (double)height / width;
 
-                            potentialBalls.Add(new Accord.Point((float)blob.Centroid.X, (float)blob.Centroid.Y));
+                            if (roundness < 2d && roundness > 0.5d)
+                            {
+                                if (potentialBalls == null)
+                                {
+                                    potentialBalls = new List<Accord.Point>();
+
+                                    centroidIndexer = _centroids.GetIndexer();
+                                }
+
+                                potentialBalls.Add(new Accord.Point((float)centroidIndexer[i, 0], (float)centroidIndexer[i,1]));
+                            }
                         }
                     }
                 }
@@ -281,7 +317,6 @@ namespace TennisHighlights
         {
             gizmoMat = null;
             _currentFrameId = ExtractionArguments.FrameId;
-            _gizmoCount = 0;
 
             //Same as below comment, no need to dispose
             var timeDeltaMat = GetTimeDeltaMat(ExtractionArguments.PreviousMat, ExtractionArguments.CurrentMat);
@@ -295,7 +330,6 @@ namespace TennisHighlights
             if (_drawGizmos)
             {
                 FileManager.WriteTempFile(_currentFrameId.ToString("D6") + "_playerBall.jpeg", _timeAntiDeltaMat, FileManager.FrameFolder);
-                _gizmoCount++;
             }
 
             Cv2.BitwiseAnd(timeDeltaMat, bgDiffMat, timeDeltaMat);
@@ -305,7 +339,6 @@ namespace TennisHighlights
             if (_drawGizmos)
             {
                 FileManager.WriteTempFile(_currentFrameId.ToString("D6") + "_timeDelta.jpeg", _dilatedMat, FileManager.FrameFolder);
-                _gizmoCount++;
             }
 
             //If fake balls close to body become a problem, subtracting the combined player blobs material would probably solve it (at the cost of
@@ -321,48 +354,50 @@ namespace TennisHighlights
                 //Remove the balls from the mat so we can use to subtract the players areas 
                 var hadPlayers = ExtractPlayersFromUnionMat(_timeAntiDeltaMat);
 
-                Cv2.Subtract(_dilatedMat, _timeAntiDeltaMat, _dilatedMat);
-
-                if (_drawGizmos || _drawPreviews)
+                if (hadPlayers)
                 {
-                    if (hadPlayers)
+                    Cv2.Subtract(_dilatedMat, _timeAntiDeltaMat, _dilatedMat);
+
+                    if (_drawGizmos || _drawPreviews)
                     {
-                        Cv2.Erode(_timeAntiDeltaMat, _bgAntiGrey, _erosionGizmoCircle);
-
-                        Cv2.Subtract(_timeAntiDeltaMat, _bgAntiGrey, _bgAntiGrey);
-                    }
-
-                    var outIndexer = _gizmoMat.GetIndexer();
-                    var playerIndexer = _bgAntiGrey.GetIndexer();
-                    var currentFrameIndexer = ExtractionArguments.CurrentMat.GetIndexer();
-                    var finalBallsIndexer = _dilatedMat.GetIndexer();
-
-                    for (int j = 0; j < _gizmoMat.Height; j++)
-                    {
-                        for (int i = 0; i < _gizmoMat.Width; i++)
+                        if (hadPlayers)
                         {
-                            if (finalBallsIndexer[j, i] > 0)
+                            Cv2.Erode(_timeAntiDeltaMat, _bgAntiGrey, _erosionGizmoCircle);
+
+                            Cv2.Subtract(_timeAntiDeltaMat, _bgAntiGrey, _bgAntiGrey);
+                        }
+
+                        var outIndexer = _gizmoMat.GetIndexer();
+                        var playerIndexer = _bgAntiGrey.GetIndexer();
+                        var currentFrameIndexer = ExtractionArguments.CurrentMat.GetIndexer();
+                        var finalBallsIndexer = _dilatedMat.GetIndexer();
+
+                        for (int j = 0; j < _gizmoMat.Height; j++)
+                        {
+                            for (int i = 0; i < _gizmoMat.Width; i++)
                             {
-                                outIndexer[j, i] = new Vec3b(255, 0, 255);
-                            }
-                            else
-                            {
-                                outIndexer[j, i] = hadPlayers && playerIndexer[j, i] > 0 ? new Vec3b(255, 0, 0)
-                                                                                         : currentFrameIndexer[j, i];
+                                if (finalBallsIndexer[j, i] > 0)
+                                {
+                                    outIndexer[j, i] = new Vec3b(255, 0, 255);
+                                }
+                                else
+                                {
+                                    outIndexer[j, i] = hadPlayers && playerIndexer[j, i] > 0 ? new Vec3b(255, 0, 0)
+                                                                                             : currentFrameIndexer[j, i];
+                                }
                             }
                         }
+
+                        gizmoMat = _gizmoMat;
                     }
 
-                    gizmoMat = _gizmoMat;
-                }
+                    if (_drawGizmos)
+                    {
+                        FileManager.WriteTempFile(_currentFrameId.ToString("D6") + "_doubleCheck.jpeg", _dilatedMat, FileManager.FrameFolder);
+                    }
 
-                if (_drawGizmos)
-                {
-                    FileManager.WriteTempFile(_currentFrameId.ToString("D6") + "_doubleCheck.jpeg", _dilatedMat, FileManager.FrameFolder);
-                    _gizmoCount++;
+                    DoubleCheckCandidateBallsOnEroded(_dilatedMat, balls);
                 }
-
-                DoubleCheckCandidateBallsOnEroded(_dilatedMat, balls);
             }
 
             return balls;
@@ -378,7 +413,7 @@ namespace TennisHighlights
 
             var hadPlayers = false;
             var components = Cv2.ConnectedComponentsEx(unionMat, PixelConnectivity.Connectivity4);
-
+            
             var blobsToKeep = components.Blobs.Where(b => b.Area > 2 * minPlayerArea
                                                           && (b.Width < _size.Width || b.Height < _size.Height));
 
@@ -449,6 +484,9 @@ namespace TennisHighlights
             _timeAntiDeltaMat.Dispose();
             _bgGrey.Dispose();
             _bgAntiGrey.Dispose();
+            _labels.Dispose();
+            _centroids.Dispose();
+            _stats.Dispose();
         }
     }
 }

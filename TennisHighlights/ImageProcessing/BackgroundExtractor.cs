@@ -2,7 +2,6 @@
 using OpenCvSharp.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using TennisHighlights.ImageProcessing;
@@ -420,7 +419,7 @@ namespace TennisHighlights
 
             var halfStep = (sampleSize - 1) / 2;
 
-            var mat = GetMatFromPool();
+            var bgMat = GetMatFromPool();
 
             for (int j = 0; j < _settings.NumberOfSamples; j++)
             {
@@ -442,7 +441,7 @@ namespace TennisHighlights
                 }
             }
 
-            var indexer = mat.GetIndexer();
+            var bgIndexer = bgMat.GetIndexer();
 
             for (int x = 0; x < _size.Height; x += sampleSize)
             {
@@ -522,7 +521,7 @@ namespace TennisHighlights
                         {
                             var regionIndexer = _frameColorMats[jj][ii].GetIndexer();
 
-                            indexer[ii, jj] = new Vec3b((byte)regionIndexer[chosenFrameIndex, 0],
+                            bgIndexer[ii, jj] = new Vec3b((byte)regionIndexer[chosenFrameIndex, 0],
                                                         (byte)regionIndexer[chosenFrameIndex, 1],
                                                         (byte)regionIndexer[chosenFrameIndex, 2]);
                         }
@@ -530,7 +529,7 @@ namespace TennisHighlights
                 }
             }
 
-            return mat;
+            return bgMat;
         }
 
         /// <summary>

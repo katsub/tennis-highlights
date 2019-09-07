@@ -41,7 +41,7 @@ namespace TennisHighlightsGUI
         /// <param name="e">The <see cref="UnhandledExceptionEventArgs"/> instance containing the event data.</param>
         private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            Logger.Log(LogType.Error, "Unhandled exception: " + e.ToString());  
+            Logger.Log(LogType.Error, "Unhandled exception: " + e.ExceptionObject.ToString());  
         }
 
         /// <summary>

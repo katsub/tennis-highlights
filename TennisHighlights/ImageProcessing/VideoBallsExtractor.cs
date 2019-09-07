@@ -242,16 +242,13 @@ namespace TennisHighlights.ImageProcessing
 
             var lastParsedFrame = -1;
 
-            if (!_settings.General.RegenerateFrames)
+            //Gets the cached balls
+            foreach (var ball in _processedFileLog.Balls)
             {
-                //Gets the cached balls
-                foreach (var ball in _processedFileLog.Balls)
-                {
-                    _ballsPerFrame[ball.Key] = ball.Value;
-                }
-
-                lastParsedFrame = _processedFileLog.Balls.LastOrDefault().Key;
+                _ballsPerFrame[ball.Key] = ball.Value;
             }
+
+            lastParsedFrame = _processedFileLog.Balls.LastOrDefault().Key;
 
             if (lastParsedFrame >= _videoInfo.TotalFrames - 150)
             {
@@ -340,7 +337,7 @@ namespace TennisHighlights.ImageProcessing
             _processedFileLog.ReloadBallsFromSerialization();
 
             return ConvertToDico();
-        }       
+        }
 
         /// <summary>
         /// Handles the Elapsed event of the Timer control.
