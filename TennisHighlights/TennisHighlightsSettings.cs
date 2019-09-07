@@ -3,6 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Xml.Linq;
 using TennisHighlights.ImageProcessing;
+using TennisHighlights.Utils;
 
 namespace TennisHighlights
 {
@@ -245,6 +246,8 @@ namespace TennisHighlights
 
     public class BackgroundExtractionSettings
     {
+        //WARNING: the algorithm uses a stackalloc of NumberOfSamples * ClusteringSize * ClusteringSize * 3 of floats, so these values must not
+        //be increased without careful consideration
         /// <summary>
         /// Gets the frames skipped per sample.
         /// </summary>

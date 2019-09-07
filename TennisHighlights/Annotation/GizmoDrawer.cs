@@ -8,6 +8,7 @@ using System.Windows;
 using TennisHighlights.ImageProcessing;
 using TennisHighlights.Moves;
 using TennisHighlights.Rallies;
+using TennisHighlights.Utils;
 
 namespace TennisHighlights.Annotation
 {

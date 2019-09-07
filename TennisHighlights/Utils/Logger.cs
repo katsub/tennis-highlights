@@ -2,7 +2,7 @@
 using System.IO;
 using System.Reflection;
 
-namespace TennisHighlights
+namespace TennisHighlights.Utils
 {
     /// <summary>
     /// The log types

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Windows;
 using TennisHighlights.Annotation;
 using TennisHighlights.ImageProcessing;
+using TennisHighlights.Utils;
 using TennisHighlights.VideoCreation;
 
 namespace TennisHighlights

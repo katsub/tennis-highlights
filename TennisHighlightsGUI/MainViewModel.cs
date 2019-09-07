@@ -1,4 +1,6 @@
 ﻿using Microsoft.Win32;
+using OpenCvSharp;
+using OpenCvSharp.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -471,7 +473,7 @@ namespace TennisHighlightsGUI
 
             try
             {
-                using (var bitmap = GUIUtils.GetVideoPreviewImage(ChosenFile))
+                using (var bitmap = GetVideoPreviewImage(ChosenFile))
                 {
                     PreviewImage = WPFUtils.BitmapToImageSource(bitmap);
                 }
@@ -492,6 +494,21 @@ namespace TennisHighlightsGUI
                 Settings.General.AnalysedVideoPath = ChosenFile;
 
                 Settings.Save();
+            }
+        }
+
+        /// <summary>
+        /// Gets the video preview image.
+        /// </summary>
+        /// <param name="filePath">The file path.</param>
+        private static Bitmap GetVideoPreviewImage(string filePath)
+        {
+            using (var video = new VideoCapture(filePath))
+            using (var frame = new Mat())
+            {
+                video.Read(frame);
+
+                return BitmapConverter.ToBitmap(frame);
             }
         }
 

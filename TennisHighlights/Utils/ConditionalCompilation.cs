@@ -1,4 +1,4 @@
-﻿namespace TennisHighlights
+﻿namespace TennisHighlights.Utils
 {
     /// <summary>
     /// The conditional compilation variables

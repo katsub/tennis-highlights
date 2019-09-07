@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
+using TennisHighlights.Utils;
 
 namespace TennisHighlights.ImageProcessing
 {

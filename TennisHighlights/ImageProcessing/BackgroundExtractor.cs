@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TennisHighlights.ImageProcessing;
+using TennisHighlights.Utils;
 
 namespace TennisHighlights
 {
@@ -42,10 +43,6 @@ namespace TennisHighlights
         /// </summary>
         private readonly VideoInfo _videoInfo;
         /// <summary>
-        /// The frame color mats
-        /// </summary>
-        private readonly MatOfFloat[][] _frameColorMats;
-        /// <summary>
         /// The refresh increment
         /// </summary>
         private readonly int _refreshIncrement;
@@ -81,18 +78,6 @@ namespace TennisHighlights
         /// The asked to stop
         /// </summary>
         private bool _askedToStop;
-        /// <summary>
-        /// The has stopped
-        /// </summary>
-        private bool _hasStopped;
-        /// <summary>
-        /// The result mat
-        /// </summary>
-        private MatOfByte _resultMat;
-        /// <summary>
-        /// The cluster counts
-        /// </summary>
-        private int[] _clusterCounts;
         /// <summary>
         /// The background cache. Used so that extractors can access background without locking
         /// </summary>
@@ -130,18 +115,6 @@ namespace TennisHighlights
             {
                 LastBuiltBackground += _refreshIncrement;
             }
-
-            _frameColorMats = new MatOfFloat[_size.Width][];
-
-            for (int j = 0; j < _size.Width; j++)
-            {
-                _frameColorMats[j] = new MatOfFloat[_size.Height];
-
-                for (int k = 0; k < _size.Height; k++)
-                {
-                    _frameColorMats[j][k] = new MatOfFloat(_settings.NumberOfSamples, 3);
-                }
-            }
         }
 
         /// <summary>
@@ -160,8 +133,6 @@ namespace TennisHighlights
         private async Task ExtractBackgroundsInBackgroundTaskInternal()
         {
             _askedToStop = false;
-            _hasStopped = false;
-
             while (!_askedToStop && _hasFramesLeftToExtract)
             {
                 if (!_isBusy && _loadedBackgrounds.Count < 4 && _hasFramesLeftToExtract)
@@ -175,8 +146,6 @@ namespace TennisHighlights
                     await Task.Delay(1000);
                 }
             }
-
-            _hasStopped = true;
         }
 
         /// <summary>
@@ -417,30 +386,19 @@ namespace TennisHighlights
                 if (numberOfSampledFrames >= maxNumberOfSamples) { break; }
             }
 
+            return BuildBackgroundByClustering(sampleSize, _sampledFrames);
+        }
+
+        /// <summary>
+        /// Builds the background by clustering.
+        /// </summary>
+        /// <param name="sampleSize">Size of the sample.</param>
+        /// <param name="sampledFrames">The sampled frames.</param>
+        private MatOfByte3 BuildBackgroundByClustering(int sampleSize, List<MatOfByte3> sampledFrames)
+        {
             var halfStep = (sampleSize - 1) / 2;
 
             var bgMat = GetMatFromPool();
-
-            for (int j = 0; j < _settings.NumberOfSamples; j++)
-            {
-                var frame = _sampledFrames[j];
-
-                var frameIndexer = frame.GetIndexer();
-
-                for (int x = 0; x < _size.Width; x++)
-                {
-                    for (int y = 0; y < _size.Height; y++)
-                    {
-                        var pix = frameIndexer[y, x];
-                        var colorIndexer = _frameColorMats[x][y].GetIndexer();
-
-                        colorIndexer[j, 0] = pix[0];
-                        colorIndexer[j, 1] = pix[1];
-                        colorIndexer[j, 2] = pix[2];
-                    }
-                }
-            }
-
             var bgIndexer = bgMat.GetIndexer();
 
             for (int x = 0; x < _size.Height; x += sampleSize)
@@ -459,54 +417,60 @@ namespace TennisHighlights
                         centerY = _size.Width - 1;
                     }
 
-                    var k = 2;
-                    //Classify between "is background" and "is moving object" (2 classes)
-                    //We assume most of the time the image shows the background, and the moving object expects little time
-                    //in ny pixel but a little bit in all of them
-                    if (_resultMat == null)
-                    {
-                        _resultMat = new MatOfByte(k, 1);
-                    }
-               
-                    Cv2.Kmeans(_frameColorMats[centerY][centerX], k, _resultMat, 
-                               TermCriteria.Both(5, 0.001), 3, KMeansFlags.PpCenters);
-
-                    if (_clusterCounts == null)
-                    {
-                        _clusterCounts = new int[k];
-                    }
-
-                    for (int p = 0; p < k; p++)
-                    {
-                        _clusterCounts[p] = 0;
-                    }
-
-                    for (int p = 0; p < numberOfSampledFrames; p++)
-                    {
-                        _clusterCounts[_resultMat.Get<int>(p)]++;
-                    }
-
-                    var biggestClusterIndex = 0;
-                    var biggestClusterSize = _clusterCounts[0];
-
-                    for (int s = 1; s < k; s++)
-                    {
-                        if (biggestClusterSize < _clusterCounts[s])
-                        {
-                            biggestClusterIndex = s;
-                            biggestClusterSize = _clusterCounts[s];
-                        }
-                    }
-
                     var chosenFrameIndex = -1;
 
-                    for (int s = 0; s < numberOfSampledFrames; s++)
+                    var k = 2;
+                    using (var samplesMat = new MatOfFloat(sampledFrames.Count, 3))
+                    using (var resultMat = new MatOfByte())
                     {
-                        if (_resultMat.Get<int>(s) == biggestClusterIndex)
-                        {
-                            chosenFrameIndex = s;
+                        var samplesIndexer = samplesMat.GetIndexer();
 
-                            break;
+                        for (int i = 0; i < sampledFrames.Count; i++)
+                        {
+                            var sampledPixel = sampledFrames[i].Get<Vec3b>(centerX, centerY);
+
+                            samplesIndexer[i, 0] = sampledPixel[0];
+                            samplesIndexer[i, 1] = sampledPixel[1];
+                            samplesIndexer[i, 2] = sampledPixel[2];
+                        }
+
+                        //Classify between "is background" and "is moving object" (2 classes)
+                        //We assume most of the time the image shows the background, and the moving object expects little time
+                        //in any pixel but a little bit in all of them. Using k = 2 supposes there's only one moving object passing through 
+                        //(if there are multiple, one of them could be placed in the background cluster by 'mistake')
+                        Cv2.Kmeans(samplesMat, k, resultMat, TermCriteria.Both(5, 0.001), 3, KMeansFlags.PpCenters);
+
+                        Span<int> clusterCounts = stackalloc int[k];
+
+                        var resultMatIndexer = resultMat.GetIndexer();
+
+                        for (int p = 0; p < sampledFrames.Count; p++)
+                        {
+                            var label = resultMatIndexer[p, 0];
+
+                            clusterCounts[label]++;
+                        }
+
+                        var biggestClusterIndex = 0;
+                        var biggestClusterSize = clusterCounts[0];
+
+                        for (int s = 1; s < k; s++)
+                        {
+                            if (biggestClusterSize < clusterCounts[s])
+                            {
+                                biggestClusterIndex = s;
+                                biggestClusterSize = clusterCounts[s];
+                            }
+                        }
+
+                        for (int s = 0; s < sampledFrames.Count; s++)
+                        {
+                            if (resultMatIndexer[s, 0] == biggestClusterIndex)
+                            {
+                                chosenFrameIndex = s;
+
+                                break;
+                            }
                         }
                     }
 
@@ -515,15 +479,13 @@ namespace TennisHighlights
                     var minY = Math.Max(0, centerY - halfStep);
                     var maxY = Math.Min(_size.Width - 1, centerY + halfStep);
 
+                    var chosenFrameIndexer = sampledFrames[chosenFrameIndex].GetIndexer();
+
                     for (int ii = minX; ii <= maxX; ii++)
                     {
                         for (int jj = minY; jj <= maxY; jj++)
                         {
-                            var regionIndexer = _frameColorMats[jj][ii].GetIndexer();
-
-                            bgIndexer[ii, jj] = new Vec3b((byte)regionIndexer[chosenFrameIndex, 0],
-                                                        (byte)regionIndexer[chosenFrameIndex, 1],
-                                                        (byte)regionIndexer[chosenFrameIndex, 2]);
+                            bgIndexer[ii, jj] = chosenFrameIndexer[ii, jj];
                         }
                     }
                 }
