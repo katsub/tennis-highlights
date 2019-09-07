@@ -45,7 +45,7 @@ namespace TennisHighlights.Annotation
         /// <param name="rallies">The rallies.</param>
         private static void DrawRallies(List<Rally> rallies)
         {
-            Logger.Instance.Log(LogType.Information, "Drawing rallies...");
+            Logger.Log(LogType.Information, "Drawing rallies...");
 
             FillRallies(rallies);
 
@@ -79,7 +79,7 @@ namespace TennisHighlights.Annotation
                 i++;
             }
 
-            Logger.Instance.Log(LogType.Information, "Drawed rallies.");
+            Logger.Log(LogType.Information, "Drawed rallies.");
         }
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace TennisHighlights.Annotation
         public static void BuildRallyGizmoVideo(Dictionary<int, List<Accord.Point>> ballsPerFrame, List<Rally> rallies, TennisHighlightsSettings settings, VideoInfo videoInfo)
         {
             var stopwatch = new Stopwatch();
-            Logger.Instance.Log(LogType.Information, "Building output video...");
+            Logger.Log(LogType.Information, "Building output video...");
 
             DrawRallies(rallies);
 
@@ -126,7 +126,7 @@ namespace TennisHighlights.Annotation
 
       //      videoWriter.Close();
 
-            Logger.Instance.Log(LogType.Information, "Done. " + stopwatch.Elapsed);
+            Logger.Log(LogType.Information, "Done. " + stopwatch.Elapsed);
         }
 
         /// <summary>

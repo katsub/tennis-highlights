@@ -65,7 +65,7 @@ namespace TennisHighlights.Rallies
             }
             else
             {
-                Logger.Instance.Log(LogType.Warning, "Couldn't filter rallies by duration because at least " + (numberOfClusters + 1) + " rallies are needed for filtering");
+                Logger.Log(LogType.Warning, "Couldn't filter rallies by duration because at least " + (numberOfClusters + 1) + " rallies are needed for filtering");
             }
 
             return (sortedClusters, rallies);
@@ -107,7 +107,7 @@ namespace TennisHighlights.Rallies
             }
             else
             {
-                Logger.Instance.Log(LogType.Warning, "Couldn't filter rallies by detected frames because at least " + (numberOfClusters + 1) + " rallies are needed for filtering");
+                Logger.Log(LogType.Warning, "Couldn't filter rallies by detected frames because at least " + (numberOfClusters + 1) + " rallies are needed for filtering");
             }
 
             return (sortedClusters, rallies);
@@ -135,7 +135,7 @@ namespace TennisHighlights.Rallies
             }
             else
             {
-                Logger.Instance.Log(LogType.Warning, "Couldn't filter rallies by undetected frames because at least 3 rallies are needed for filtering");
+                Logger.Log(LogType.Warning, "Couldn't filter rallies by undetected frames because at least 3 rallies are needed for filtering");
             }
 
             return filteredRallies.ToList();

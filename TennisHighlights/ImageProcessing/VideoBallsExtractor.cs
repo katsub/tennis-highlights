@@ -296,7 +296,7 @@ namespace TennisHighlights.ImageProcessing
                                 //Can't do anything without background, so break                                
                                 if (background == null)
                                 {
-                                    Logger.Instance.Log(LogType.Warning, "Background was null for frame " + i);
+                                    Logger.Log(LogType.Warning, "Background was null for frame " + i);
                                     break;
                                 }
 
@@ -353,7 +353,7 @@ namespace TennisHighlights.ImageProcessing
 
             _shouldUpdate = true;
 
-            Logger.Instance.Log(LogType.Information, "\rFrame[Processed=" + FramesProcessed + ", Loaded=" + _frameExtractor.FramesLoaded
+            Logger.Log(LogType.Information, "\rFrame[Processed=" + FramesProcessed + ", Loaded=" + _frameExtractor.FramesLoaded
                                                      + ", BG=" + _backgroundExtractor.LastBuiltBackground
                                                      + ", Disposed=" + _frameDisposer.LastDisposedFrame + "], Workers[Ball=" + freeWorkers
                                                      + ", Frame=" + _frameExtractor.FreeWorkers

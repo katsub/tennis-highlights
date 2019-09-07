@@ -17,42 +17,32 @@ namespace TennisHighlights
     /// <summary>
     /// The logger
     /// </summary>
-    public class Logger
+    public static class Logger
     {
         /// <summary>
         /// The log path
         /// </summary>
-        private readonly string _logPath; 
-
-        /// <summary>
-        /// The instance
-        /// </summary>
-        public static Logger Instance { get; private set; }
-
+        private static readonly string _logPath; 
         /// <summary>
         /// Initializes the <see cref="Logger"/> class.
         /// </summary>
-        static Logger() => Instance = new Logger();
-
-        /// <summary>
-        /// Prevents a default instance of the <see cref="Logger"/> class from being created.
-        /// </summary>
-        private Logger() => _logPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\log.txt";
+        static Logger() => _logPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\log.txt";
 
         /// <summary>
         /// Logs the specified message.
         /// </summary>
         /// <param name="message">The message.</param>
         /// <param name="LogType">Type of the log.</param>
-        public void Log(LogType type, string message)
+        public static void Log(LogType type, string message)
         {
             var formattedMessage = $"[{DateTime.Now}][{type}]: {message}";
 
-            using (var writer = File.AppendText(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\log.txt"))
+            using (var writer = File.AppendText(_logPath))
             {
                 writer.WriteLine(formattedMessage);
             }
 
+            //Useful if using a command-line version
             Console.WriteLine(formattedMessage);
         }
     }

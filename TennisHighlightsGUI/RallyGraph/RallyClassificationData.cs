@@ -84,7 +84,7 @@ namespace TennisHighlightsGUI
                 {
                     if (index >= rallies.Count)
                     {
-                        Logger.Instance.Log(LogType.Warning, "Rally classification parsing will ignore index " + index + " bigger than or equal to rallies.Count: " + rallies.Count);
+                        Logger.Log(LogType.Warning, "Rally classification parsing will ignore index " + index + " bigger than or equal to rallies.Count: " + rallies.Count);
                         continue;
                     }
 
@@ -107,7 +107,7 @@ namespace TennisHighlightsGUI
                     }
                     else
                     {
-                        Logger.Instance.Log(LogType.Warning, "Rally classification parsing will ignore index " + index + " because it could not parse its class from string: " + classToParse);
+                        Logger.Log(LogType.Warning, "Rally classification parsing will ignore index " + index + " because it could not parse its class from string: " + classToParse);
                         continue;
                     }
                 }

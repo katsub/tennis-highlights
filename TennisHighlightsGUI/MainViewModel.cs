@@ -249,6 +249,7 @@ namespace TennisHighlightsGUI
                     RegenerateRallies();
                 }
 
+                SendProgressInfo("Parsed from cache", 100, 0d);
                 SwitchToRallySelectionView();
 
                 IsConverting = false;
@@ -459,6 +460,8 @@ namespace TennisHighlightsGUI
             ChosenFile = fileName;
             Settings.General.AnalysedVideoPath = fileName;
             ChosenFileLog = ProcessedFileLog.GetOrCreateProcessedFileLog(Settings.General);
+
+            SendProgressInfo("Not started", 0, 0d);
 
             try
             {

@@ -1,9 +1,6 @@
-﻿using Microsoft.Win32;
-using System;
+﻿using System;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Windows;
 using System.Xml.Linq;
 using TennisHighlights.ImageProcessing;
 
@@ -321,7 +318,7 @@ namespace TennisHighlights
 
                 if (General == null) { General = new GeneralSettings(); }
 
-                Logger.Instance.Log(LogType.Error, "Problem loading settings: " + e.ToString());
+                Logger.Log(LogType.Error, "Problem loading settings: " + e.ToString());
             }
         }
 
@@ -355,7 +352,7 @@ namespace TennisHighlights
             }
             catch (Exception e)
             {
-                Logger.Instance.Log(LogType.Error, "Could not save document: " + e.ToString());
+                Logger.Log(LogType.Error, "Could not save document: " + e.ToString());
             }
         }
     }

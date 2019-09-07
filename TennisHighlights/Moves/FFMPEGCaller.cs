@@ -39,7 +39,7 @@ namespace TennisHighlights
 
                 if (!proc.Start())
                 {
-                    Logger.Instance.Log(LogType.Error, "Could not start FFMPEG.");
+                    Logger.Log(LogType.Error, "Could not start FFMPEG.");
                     return false;
                 }
 
@@ -60,7 +60,7 @@ namespace TennisHighlights
 
                 error = message;
 
-                Logger.Instance.Log(LogType.Error, message);
+                Logger.Log(LogType.Error, message);
 
                 return false;
             }
@@ -96,7 +96,7 @@ namespace TennisHighlights
             catch (InvalidOperationException e) { }
             catch (Exception e)
             {
-                Logger.Instance.Log(LogType.Error, "Kill process failed: " + e.ToString());
+                Logger.Log(LogType.Error, "Kill process failed: " + e.ToString());
             }
         }
 

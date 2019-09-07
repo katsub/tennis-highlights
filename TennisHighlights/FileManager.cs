@@ -61,7 +61,7 @@ namespace TennisHighlights
             }
             catch (Exception e)
             {
-                Logger.Instance.Log(LogType.Error, "Could not write or create file in temp data path: " + TempDataPath 
+                Logger.Log(LogType.Error, "Could not write or create file in temp data path: " + TempDataPath 
                                                    + ". Ensure that parameter is properly set in the settings.xml and new files can be created in that location.\n" + e.ToString()); 
             }
         }
@@ -73,7 +73,7 @@ namespace TennisHighlights
         {
             try
             {
-                Logger.Instance.Log(LogType.Information, "Cleaning folders...");
+                Logger.Log(LogType.Information, "Cleaning folders...");
 
                 if (_settings.RegenerateFrames)
                 {
@@ -83,7 +83,7 @@ namespace TennisHighlights
                 CleanFolder(RallyFolder);
                 //CleanFolder(RallyVideosFolder);
 
-                Logger.Instance.Log(LogType.Information, "Cleaned.");
+                Logger.Log(LogType.Information, "Cleaned.");
             }
             catch { }
         }

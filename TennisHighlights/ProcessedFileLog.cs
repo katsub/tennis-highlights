@@ -206,7 +206,7 @@ namespace TennisHighlights
             }
             catch (Exception e)
             {
-                Logger.Instance.Log(LogType.Error, "Could not save processed file log: " + e.ToString());
+                Logger.Log(LogType.Error, "Could not save processed file log: " + e.ToString());
             }
         }
 
@@ -287,7 +287,7 @@ namespace TennisHighlights
             }
             catch (Exception e)
             {
-                Logger.Instance.Log(LogType.Error, "Could not parse file signature: " + e.ToString());
+                Logger.Log(LogType.Error, "Could not parse file signature: " + e.ToString());
             }
 
             return null;

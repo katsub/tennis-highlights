@@ -255,7 +255,7 @@ namespace TennisHighlights
 
             if (background == null)
             {
-                Logger.Instance.Log(LogType.Warning, "Background was null for frame " + frameIndex);
+                Logger.Log(LogType.Warning, "Background was null for frame " + frameIndex);
             }
 
             //Might be null if it didn't need to build any backgrounds because all frames have been parsed, for example
@@ -303,7 +303,7 @@ namespace TennisHighlights
             {
                 if (cachedBMP != null)
                 {
-                    Logger.Instance.Log(LogType.Information, "Loading background " + bgFinalFrame);
+                    Logger.Log(LogType.Information, "Loading background " + bgFinalFrame);
 
                     background = GetMatFromPool();
 
@@ -313,7 +313,7 @@ namespace TennisHighlights
 
             if (background == null)
             {
-                Logger.Instance.Log(LogType.Information, "Calculating background " + bgFinalFrame);
+                Logger.Log(LogType.Information, "Calculating background " + bgFinalFrame);
 
                 //If the newBackground is null, this means it has reached the end of the video: we use the previous background then
                 var newBackground = await ExtractBackground(startFrame);
@@ -365,7 +365,7 @@ namespace TennisHighlights
             {
                 if (!_askedToStop)
                 {
-                    Logger.Instance.Log(LogType.Warning, "Could not get frame " + firstFrame + " althought the background extractor was not asked to stop.");
+                    Logger.Log(LogType.Warning, "Could not get frame " + firstFrame + " althought the background extractor was not asked to stop.");
 
                     return null;
                 }
@@ -400,7 +400,7 @@ namespace TennisHighlights
                 {
                     if (!_askedToStop)
                     {
-                        Logger.Instance.Log(LogType.Warning, "Could not get frame " + getFrameIndex + " althought the background extractor was not asked to stop.");
+                        Logger.Log(LogType.Warning, "Could not get frame " + getFrameIndex + " althought the background extractor was not asked to stop.");
 
                         return null;
                     }

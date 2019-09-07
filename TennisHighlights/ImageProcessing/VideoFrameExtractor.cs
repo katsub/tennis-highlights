@@ -138,7 +138,7 @@ namespace TennisHighlights
 
                     if (busyMat.Mat == null)
                     {
-                        Logger.Instance.Log(LogType.Warning, "Video ended unexpectedly at frame " + i);
+                        Logger.Log(LogType.Warning, "Video ended unexpectedly at frame " + i);
                         break;
                     }
 
@@ -168,7 +168,7 @@ namespace TennisHighlights
             }
             catch (Exception e)
             {
-                Logger.Instance.Log(LogType.Error, "Extraction exception: " + e.ToString());
+                Logger.Log(LogType.Error, "Extraction exception: " + e.ToString());
             }
             finally
             {

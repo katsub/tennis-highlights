@@ -14,7 +14,7 @@ namespace TennisHighlights
 
         static void Main(string[] args)
         {
-            Logger.Instance.Log(LogType.Information, "Application started.");
+            Logger.Log(LogType.Information, "Application started.");
 
             try
             {
@@ -41,7 +41,7 @@ namespace TennisHighlights
 
                 var rallies = TennisHighlightsEngine.GetRalliesFromBalls(settings, ballsPerFrame, processedFileLog);
 
-                Logger.Instance.Log(LogType.Information, "Elapsed: " + stopwatch.Elapsed);
+                Logger.Log(LogType.Information, "Elapsed: " + stopwatch.Elapsed);
 
                 if (settings.General.DrawGizmos)
                 {
@@ -52,11 +52,11 @@ namespace TennisHighlights
                     //RallyVideoCreator.BuildVideoWithAllRallies(rallies, videoInfo, settings.General);
                 }
 
-                Logger.Instance.Log(LogType.Information, "Total time: " + stopwatch.Elapsed);
+                Logger.Log(LogType.Information, "Total time: " + stopwatch.Elapsed);
             }
             catch (Exception e)
             {
-                Logger.Instance.Log(LogType.Error, "Errors were encountered: " + e.ToString());
+                Logger.Log(LogType.Error, "Errors were encountered: " + e.ToString());
             }
 
             Console.ReadLine();
