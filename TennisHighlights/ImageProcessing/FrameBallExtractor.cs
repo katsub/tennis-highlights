@@ -222,13 +222,15 @@ namespace TennisHighlights
             //Erosion should delete noise, so absent balls should be removed from the already added candidates
             var components = Cv2.ConnectedComponentsEx(mat, PixelConnectivity.Connectivity4);
 
-            foreach (var potentialBall in potentialBalls.ToArray())
+            for (int i = potentialBalls.Count - 1; i >= 0; i--)
             {
+                var potentialBall = potentialBalls[i];
+
                 //If the potential ball cannot be found on this 'noiseless' mat, then it was added by noise that was deleted on the erosion
                 if (!components.Blobs.Any(b => Math.Pow(potentialBall.X - b.Centroid.X, 2)
                                                + Math.Pow(potentialBall.Y - b.Centroid.Y, 2) < maxDoubleCheckBallCenterSquaredDistance))
                 {
-                    potentialBalls.Remove(potentialBall);
+                    potentialBalls.RemoveAt(i);
                 }
             }
         }
@@ -244,7 +246,7 @@ namespace TennisHighlights
             var minPlayerArea = _settings.MinPlayerArea.Value;
             var components = Cv2.ConnectedComponentsEx(bgDiffMat, PixelConnectivity.Connectivity4);
 
-            potentialBalls = new List<Accord.Point>();
+            potentialBalls = null;
 
             foreach (var blob in components.Blobs)
             {
@@ -255,7 +257,14 @@ namespace TennisHighlights
                         var roundness = (double)blob.Height / blob.Width;
 
                         if (roundness < 2d && roundness > 0.5d)
+                        {
+                            if (potentialBalls == null)
+                            {
+                                potentialBalls = new List<Accord.Point>();
+                            }
+
                             potentialBalls.Add(new Accord.Point((float)blob.Centroid.X, (float)blob.Centroid.Y));
+                        }
                     }
                 }
             }
@@ -273,8 +282,6 @@ namespace TennisHighlights
             gizmoMat = null;
             _currentFrameId = ExtractionArguments.FrameId;
             _gizmoCount = 0;
-
-            var balls = new List<Accord.Point>();
 
             //Same as below comment, no need to dispose
             var timeDeltaMat = GetTimeDeltaMat(ExtractionArguments.PreviousMat, ExtractionArguments.CurrentMat);
@@ -304,9 +311,9 @@ namespace TennisHighlights
             //If fake balls close to body become a problem, subtracting the combined player blobs material would probably solve it (at the cost of
             //not detecting balls that become close to body) : might be worth it
             //Good for detecting far balls that have lost shape, and potential player regions
-            GetPotentialBalls(_dilatedMat, out balls);
+            GetPotentialBalls(_dilatedMat, out var balls);
 
-            if (balls.Any())
+            if (balls?.Any() == true)
             {
                 Cv2.Erode(timeDeltaMat, _erodedMat, _contourErosionCircle);
                 Cv2.Dilate(_erodedMat, _dilatedMat, _contourDilationCircle);
@@ -404,7 +411,7 @@ namespace TennisHighlights
 
                 if (_drawPreviews)
                 {
-                    BitmapConverter.ToBitmap(gizmoMat ?? ExtractionArguments.CurrentMat);
+                    frame = BitmapConverter.ToBitmap(gizmoMat ?? ExtractionArguments.CurrentMat);
                 }
 
                 ExtractionArguments.OnGizmoDrawn(frame);

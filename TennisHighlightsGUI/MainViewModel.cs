@@ -207,6 +207,8 @@ namespace TennisHighlightsGUI
                 {
                     OutputFolder = Path.GetDirectoryName(dialog.FileName);
                     Settings.General.TempDataPath = OutputFolder;
+
+                    ChosenFileLog = ProcessedFileLog.GetOrCreateProcessedFileLog(Settings.General);
                 }
             });
             #endregion

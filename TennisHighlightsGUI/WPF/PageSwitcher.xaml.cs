@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using TennisHighlights;
 using TennisHighlightsGUI.WPF;
 
 namespace TennisHighlightsGUI
@@ -10,10 +12,13 @@ namespace TennisHighlightsGUI
     /// </summary>
     public partial class PageSwitcher : Window
     {
-        private MainWindow _main;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PageSwitcher"/> class.
+        /// </summary>
         public PageSwitcher()
         {
+            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(CurrentDomain_UnhandledException);
+
             var viewModel = new PageSwitchViewModel(640); 
 
             DataContext = viewModel;
@@ -27,7 +32,17 @@ namespace TennisHighlightsGUI
             this.Closing += mainWindow.MainWindow_Closing;
             
             Switcher.Switch(mainWindow);
-        }       
+        }
+
+        /// <summary>
+        /// Handles the UnhandledException event of the CurrentDomain control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="UnhandledExceptionEventArgs"/> instance containing the event data.</param>
+        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            Logger.Instance.Log(LogType.Error, "Unhandled exception: " + e.ToString());  
+        }
 
         /// <summary>
         /// Navigates the specified next page.

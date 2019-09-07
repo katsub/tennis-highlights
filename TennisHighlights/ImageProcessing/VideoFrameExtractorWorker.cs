@@ -1,6 +1,4 @@
 ﻿using OpenCvSharp;
-using OpenCvSharp.Extensions;
-using System.Drawing;
 using System.Threading.Tasks;
 
 namespace TennisHighlights.ImageProcessing

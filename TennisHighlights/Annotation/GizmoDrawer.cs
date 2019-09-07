@@ -28,7 +28,11 @@ namespace TennisHighlights.Annotation
         {
             ImageUtils.DrawRectangles(drawFrame, new List<Boundary>() { new Boundary(0, 60, 0, 20) }, null, Brushes.White);
             ImageUtils.DrawText(drawFrame, i.ToString(), new Accord.Point(0, 0), 15, Brushes.Red);
-            ImageUtils.DrawCircles(drawFrame, balls, 4, Brushes.Red);
+
+            if (balls != null)
+            {
+                ImageUtils.DrawCircles(drawFrame, balls, 4, Brushes.Red);
+            }
 
             FileManager.WriteTempFile(i.ToString("D6") + ".jpg", drawFrame, FileManager.FrameFolder);
 

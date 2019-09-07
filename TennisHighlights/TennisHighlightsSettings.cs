@@ -148,18 +148,9 @@ namespace TennisHighlights
                     BallExtractionWorkers = generalSettings.GetIntElementValue(SettingsKeys.BallExtractionWorkers, 20);
                     FrameExtractionWorkers = generalSettings.GetIntElementValue(SettingsKeys.FrameExtractionWorkers, 10);
 
-                    var currentDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-
-                    var defaultTempDataPath = currentDir + "\\Output\\";
-
-                    TempDataPath = generalSettings.GetStringElementValue(SettingsKeys.TempDataPath, defaultTempDataPath);
+                    TempDataPath = generalSettings.GetStringElementValue(SettingsKeys.TempDataPath);
 
                     if (!TempDataPath.EndsWith("\\")) { TempDataPath += "\\"; }
-
-                    if (!Directory.Exists(TempDataPath))
-                    {
-                        TempDataPath = defaultTempDataPath;
-                    }
 
                     FFmpegPath = generalSettings.GetStringElementValue(SettingsKeys.FFmpegPath);
 
@@ -170,6 +161,11 @@ namespace TennisHighlights
                    
                     FFMPEGCaller.FFmpegPath = FFmpegPath;
                 }
+            }
+
+            if (!Directory.Exists(TempDataPath))
+            {
+                TempDataPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\Output\\";
             }
         }
 

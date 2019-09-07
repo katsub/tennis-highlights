@@ -7,6 +7,10 @@
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutputPath></OutputPath>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\InWit.WPF.MultiRangeSlider\InWit.WPF.MultiRangeSlider.csproj" />
     <ProjectReference Include="..\TennisHighlights\TennisHighlights.csproj" />

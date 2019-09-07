@@ -371,9 +371,6 @@ namespace TennisHighlights
                 }
             }
 
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
-
             var sampleSize = _settings.ClusteringSize;
             var maxNumberOfSamples = _settings.NumberOfSamples;
             var framesPerSample = _settings.FramesPerSample;

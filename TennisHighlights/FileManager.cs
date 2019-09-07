@@ -31,17 +31,11 @@ namespace TennisHighlights
         /// <summary>
         /// The temporary data path
         /// </summary>
-        public static string TempDataPath { get; private set; }
-
+        public static string TempDataPath => _settings.TempDataPath + "\\Temp\\";
         /// <summary>
         /// The persistent data path
         /// </summary>
-        public static string PersistentDataPath { get; private set; }
-
-        /// <summary>
-        /// The temporary data path
-        /// </summary>
-        private static string _tempDataPath;
+        public static string PersistentDataPath => _settings.TempDataPath + "\\Persistent\\";
         /// <summary>
         /// The settings
         /// </summary>
@@ -54,10 +48,6 @@ namespace TennisHighlights
         public static void Initialize(GeneralSettings settings)
         {
             _settings = settings;
-
-            _tempDataPath = settings.TempDataPath;
-            PersistentDataPath = _tempDataPath + "Persistent\\";
-            TempDataPath = _tempDataPath + "Temp\\";
 
             try
             {

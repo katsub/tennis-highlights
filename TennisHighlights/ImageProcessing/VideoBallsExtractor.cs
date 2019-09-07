@@ -6,7 +6,6 @@ using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
-using System.Windows;
 
 namespace TennisHighlights.ImageProcessing
 {
@@ -26,7 +25,7 @@ namespace TennisHighlights.ImageProcessing
         /// <summary>
         /// The balls per frame
         /// </summary>
-        private Dictionary<int, List<Accord.Point>> _ballsPerFrameCopyForSerialization = new Dictionary<int, List<Accord.Point>>();
+        private readonly Dictionary<int, List<Accord.Point>> _ballsPerFrameCopyForSerialization = new Dictionary<int, List<Accord.Point>>();
         /// <summary>
         /// The ball extractors
         /// </summary>
