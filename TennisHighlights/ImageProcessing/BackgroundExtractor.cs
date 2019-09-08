@@ -235,7 +235,7 @@ namespace TennisHighlights
         /// </summary>
         /// <param name="frameIndex">Index of the frame.</param>
         public void DisposeBackgroundOlderThan(int frameIndex)
-        {
+        {          
             foreach (var key in _loadedBackgrounds.Keys.ToList())
             {
                 if (frameIndex > key)

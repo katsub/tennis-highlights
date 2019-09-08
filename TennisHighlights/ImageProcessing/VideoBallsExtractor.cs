@@ -16,17 +16,9 @@ namespace TennisHighlights.ImageProcessing
     public class VideoBallsExtractor
     {
         /// <summary>
-        /// The assign extractor lock
-        /// </summary>
-        private readonly object _assignExtractorLock = new object();
-        /// <summary>
         /// The balls per frame
         /// </summary>
         private readonly List<Accord.Point>[] _ballsPerFrame;
-        /// <summary>
-        /// The balls per frame
-        /// </summary>
-        private readonly Dictionary<int, List<Accord.Point>> _ballsPerFrameCopyForSerialization = new Dictionary<int, List<Accord.Point>>();
         /// <summary>
         /// The ball extractors
         /// </summary>
@@ -50,7 +42,7 @@ namespace TennisHighlights.ImageProcessing
         /// <summary>
         /// The timer
         /// </summary>
-        private readonly System.Timers.Timer _timer;
+        private readonly Timer _timer;
         /// <summary>
         /// The frame extractor
         /// </summary>
@@ -124,7 +116,7 @@ namespace TennisHighlights.ImageProcessing
             _targetSize = new System.Drawing.Size(width, height);
             _cvTargetSize = new OpenCvSharp.Size(_targetSize.Width, _targetSize.Height);
 
-            _timer = new System.Timers.Timer
+            _timer = new Timer
             {
                 Interval = 5000,
                 // Have the timer fire repeated events (true is the default)

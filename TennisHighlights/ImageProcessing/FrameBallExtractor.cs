@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows;
 using TennisHighlights.Annotation;
 using TennisHighlights.ImageProcessing;
 
@@ -372,9 +371,11 @@ namespace TennisHighlights
                         var currentFrameIndexer = ExtractionArguments.CurrentMat.GetIndexer();
                         var finalBallsIndexer = _dilatedMat.GetIndexer();
 
-                        for (int j = 0; j < _gizmoMat.Height; j++)
+                        var width = _size.Width;
+
+                        for (int j = 0; j < _size.Height; j++)
                         {
-                            for (int i = 0; i < _gizmoMat.Width; i++)
+                            for (int i = 0; i < width; i++)
                             {
                                 if (finalBallsIndexer[j, i] > 0)
                                 {
