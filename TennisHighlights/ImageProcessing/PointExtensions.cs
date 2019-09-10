@@ -1,5 +1,6 @@
 ﻿using Accord;
 using Accord.Math.Geometry;
+using System;
 
 namespace TennisHighlights.ImageProcessing
 {
@@ -8,6 +9,10 @@ namespace TennisHighlights.ImageProcessing
     /// </summary>
     public static class PointExtensions
     {
+        /// <summary>
+        /// The radians to degrees
+        /// </summary>
+        private const double _radiansToDegrees = (180d / Math.PI);
         /// <summary>
         /// The origin
         /// </summary>
@@ -25,7 +30,15 @@ namespace TennisHighlights.ImageProcessing
         /// </summary>
         /// <param name="p">This point.</param>
         /// <param name="other">The other point.</param>
-        public static double AngleBetween(this Point p, Point other) => GeometryTools.GetAngleBetweenVectors(_origin, p, other);
+        public static double AngleBetween(this Point p, Point other)
+        {
+            var theta1 = Math.Atan2(_origin.Y - p.Y, _origin.X - p.X);
+            var theta2 = Math.Atan2(_origin.Y - other.Y, _origin.X - other.X);
+
+            var diff = Math.Abs(theta1 - theta2);
+
+            return _radiansToDegrees * Math.Min(diff, Math.Abs(180 - diff));
+        }
 
         /// <summary>
         /// Multiplies this point by the given constant.

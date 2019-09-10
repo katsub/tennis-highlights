@@ -1,4 +1,6 @@
-﻿using System;
+﻿using OpenCvSharp;
+using OpenCvSharp.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -84,6 +86,38 @@ namespace TennisHighlights.Annotation
         }
 
         /// <summary>
+        /// Initializes the <see cref="GizmoDrawer" /> class.
+        /// </summary>
+        /// <param name="originalFrameRate">The original frame rate.</param>
+        /// <param name="targetSize">Size of the target.</param>
+        /// <param name="lastFrameIndex">Last index of the frame.</param>
+        public static void BuildGizmoVideo(double originalFrameRate, OpenCvSharp.Size targetSize, int lastFrameIndex)
+        {
+            var frameRate = (int)Math.Round(originalFrameRate * 1.3d);
+            var path = Path.GetFullPath(FileManager.TempDataPath + "output.avi");
+
+            using (var frameMat = new MatOfByte3(targetSize))
+            using (var videoWriter = new VideoWriter(path, FourCC.MJPG, frameRate, targetSize))
+            {               
+                for (int i = 0; i < lastFrameIndex; i++)
+                {
+                    var frame = FileManager.ReadTempBitmapFile(i.ToString("D6") + ".jpg", FileManager.FrameFolder);
+
+                    if (frame != null)
+                    {
+                        BitmapConverter.ToMat(frame, frameMat);
+
+                        var final = frameMat.Resize(targetSize);
+
+                        videoWriter.Write(final);
+
+                        final.Dispose();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Builds the rally video.
         /// </summary>
         /// <param name="ballsPerFrame">The balls per frame.</param>
@@ -98,7 +132,6 @@ namespace TennisHighlights.Annotation
 //            var videoWriter = new VideoFileWriter();
             var framerate = (int)Math.Round(videoInfo.FrameRate * 1.3d);
             var path = Path.GetFullPath(FileManager.TempDataPath + "output.avi");
-            int videoBitRate = 1200 * 300;
             var lastFrame = ballsPerFrame.Last().Key;
             var firstBitmapRead = true;
 

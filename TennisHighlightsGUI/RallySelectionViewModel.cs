@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using InWit.WPF.MultiRangeSlider;
+using Microsoft.Win32;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -46,7 +47,7 @@ namespace TennisHighlightsGUI
         /// <summary>
         /// The slider
         /// </summary>
-       // private WitMultiRangeSlider _multiSlider;
+        private WitMultiRangeSlider _multiSlider;
 
         #region Commands
         /// <summary>
@@ -761,7 +762,7 @@ namespace TennisHighlightsGUI
             MaxStop = SelectedRally.MaxStop;
             MinStart = SelectedRally.MinStart;
 
-            //_multiSlider.ResetItems();
+            _multiSlider.ResetItems();
 
             SliderStop = SelectedRally.Stop;
             CurrentPosition = SelectedRally.Start;
@@ -775,10 +776,10 @@ namespace TennisHighlightsGUI
         /// </summary>
         /// <param name="player">The player.</param>
         /// <param name="multiSlider">The multi slider.</param>
-        public void SetPlayer(MediaElement player/*, WitMultiRangeSlider multiSlider*/)
+        public void SetPlayer(MediaElement player, WitMultiRangeSlider multiSlider)
         {
             _player = player;
-//            _multiSlider = multiSlider;
+            _multiSlider = multiSlider;
 
             if (Rallies.Any())
             {

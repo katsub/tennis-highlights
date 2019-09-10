@@ -68,9 +68,9 @@ namespace TennisHighlights.ImageProcessing
         {
             Task.Run(() =>
             {
-                if (_videoFrameExtractor.TargetSize != System.Drawing.Size.Empty)
+                if (_videoFrameExtractor.TargetSize != OpenCvSharp.Size.Zero)
                 {
-                    Cv2.Resize(_mat.Mat, _resizeMat.Mat, _videoFrameExtractor.CvTargetSize, 0, 0, InterpolationFlags.Nearest);
+                    Cv2.Resize(_mat.Mat, _resizeMat.Mat, _videoFrameExtractor.TargetSize, 0, 0, InterpolationFlags.Nearest);
                 }
 
                 if (_resizeMat == null)

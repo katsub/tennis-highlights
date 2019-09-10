@@ -94,7 +94,7 @@ namespace TennisHighlights
                 }
             }
             //Process is over, checking has existed will throw "process is not associated with any running process"
-            catch (InvalidOperationException e) { }
+            catch (InvalidOperationException) { }
             catch (Exception e)
             {
                 Logger.Log(LogType.Error, "Kill process failed: " + e.ToString());

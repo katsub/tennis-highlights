@@ -20,6 +20,10 @@ namespace TennisHighlights.Utils
     public static class Logger
     {
         /// <summary>
+        /// The log lock
+        /// </summary>
+        private static object _logLock = new object();
+        /// <summary>
         /// The log path
         /// </summary>
         private static readonly string _logPath; 
@@ -29,7 +33,7 @@ namespace TennisHighlights.Utils
         static Logger() => _logPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\log.txt";
 
         /// <summary>
-        /// Logs the specified message.
+        /// Logs the specified message. Has lock because it should be used sparingly in the first place, so performance isn't an issue
         /// </summary>
         /// <param name="message">The message.</param>
         /// <param name="LogType">Type of the log.</param>
@@ -37,9 +41,12 @@ namespace TennisHighlights.Utils
         {
             var formattedMessage = $"[{DateTime.Now}][{type}]: {message}";
 
-            using (var writer = File.AppendText(_logPath))
+            lock (_logLock)
             {
-                writer.WriteLine(formattedMessage);
+                using (var writer = File.AppendText(_logPath))
+                {
+                    writer.WriteLine(formattedMessage);
+                }
             }
 
             //Useful if using a command-line version

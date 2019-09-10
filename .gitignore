@@ -1,0 +1,12 @@
+
+.vs/TennisHighlights/DesignTimeBuild/.dtbcache
+.vs/TennisHighlights/v16/.suo
+*.lock
+*.ide
+*.ide-shm
+*.ide-wal
+InWit.WPF.MultiRangeSlider/bin/Debug/netcoreapp3.0/InWit.WPF.MultiRangeSlider.deps.json
+bin
+obj
+bin
+obj

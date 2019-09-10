@@ -30,7 +30,7 @@ namespace TennisHighlightsGUI
 
             InitializeComponent();
 
-            RallySelectionViewModel.SetPlayer(mePlayer/*, multiSlider*/);                 
+            RallySelectionViewModel.SetPlayer(mePlayer, multiSlider);                 
         }
 
         /// <summary>

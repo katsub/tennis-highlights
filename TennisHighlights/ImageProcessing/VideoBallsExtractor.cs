@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
+using TennisHighlights.Annotation;
 using TennisHighlights.Utils;
 
 namespace TennisHighlights.ImageProcessing
@@ -26,11 +27,7 @@ namespace TennisHighlights.ImageProcessing
         /// <summary>
         /// The target size
         /// </summary>
-        private readonly System.Drawing.Size _targetSize;
-        /// <summary>
-        /// The cv target size
-        /// </summary>
-        private readonly OpenCvSharp.Size _cvTargetSize;
+        private readonly OpenCvSharp.Size _targetSize;
         /// <summary>
         /// The settings
         /// </summary>
@@ -107,14 +104,13 @@ namespace TennisHighlights.ImageProcessing
             _checkIfCancelRequested = checkIfCancelRequested;
             _ballsPerFrame = new List<Accord.Point>[_videoInfo.TotalFrames];
 
-            var height = (int)Math.Round((double)Math.Min(videoInfo.Height, settings.General.VideoAnalysisMaxHeight));
+            var height = (int)Math.Round((double)Math.Min(videoInfo.Height, settings.General.FrameMaxHeight));
             var width = (int)Math.Round(height * videoInfo.Width / (double)videoInfo.Height);
 
             ResolutionDependentParameter.SetTargetResolutionheight(height);
             FrameBallExtractor.AllocateResolutionDependentMats();
 
-            _targetSize = new System.Drawing.Size(width, height);
-            _cvTargetSize = new OpenCvSharp.Size(_targetSize.Width, _targetSize.Height);
+            _targetSize = new OpenCvSharp.Size(width, height);
 
             _timer = new Timer
             {
@@ -136,7 +132,7 @@ namespace TennisHighlights.ImageProcessing
                 }
             }
 
-            FrameBallExtractor.SetSize(_cvTargetSize);
+            FrameBallExtractor.SetSize(_targetSize);
 
             _ballExtractors = Enumerable.Range(1, _settings.General.BallExtractionWorkers)
                                         .Select(o => new FrameBallExtractor(settings.BallDetection, settings.General.DrawGizmos, !settings.General.DisableImagePreview, onExtractionOver)).ToList();
@@ -149,7 +145,7 @@ namespace TennisHighlights.ImageProcessing
         /// <param name="previousMat">The previous mat.</param>
         /// <param name="currentMat">The current mat.</param>
         /// <param name="background">The background.</param>
-        private async Task ExtractBallsInBackgroundTask(int frameId, MatOfByte3 previousMat, MatOfByte3 currentMat, Mat background)
+        private async Task ExtractBallsInBackgroundTask(int frameId, MatOfByte3 previousMat, MatOfByte3 currentMat, MatOfByte3 background)
         {
             bool AssignExtractor(out FrameBallExtractor freeExtractor)
             {
@@ -328,6 +324,11 @@ namespace TennisHighlights.ImageProcessing
             SerializeBalls();
             //Needs to be serialized then deserialized so we have a file that yields exactly the same results we're gonna have in that call
             _processedFileLog.ReloadBallsFromSerialization();
+
+            if (_settings.General.DrawGizmos)
+            {
+                GizmoDrawer.BuildGizmoVideo(_videoInfo.FrameRate, _targetSize, _processedFileLog.Balls.Last().Key);
+            }
 
             return ConvertToDico();
         }

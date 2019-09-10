@@ -29,7 +29,7 @@ namespace TennisHighlights
         /// <summary>
         /// The size
         /// </summary>
-        private readonly System.Drawing.Size _size;
+        private readonly OpenCvSharp.Size _size;
         /// <summary>
         /// The frame extractor
         /// </summary>
@@ -97,7 +97,7 @@ namespace TennisHighlights
         /// <param name="videoInfo">The video information.</param>
         /// <param name="parsedFrames">The parsed frames.</param>
         /// <param name="framesToExtract">The frames to extract.</param>
-        public BackgroundExtractor(VideoFrameExtractor frameExtractor, System.Drawing.Size targetSize, int startingFrame, BackgroundExtractionSettings settings, VideoInfo videoInfo,
+        public BackgroundExtractor(VideoFrameExtractor frameExtractor, OpenCvSharp.Size targetSize, int startingFrame, BackgroundExtractionSettings settings, VideoInfo videoInfo,
                                    int parsedFrames, int framesToExtract)
         {
             _parsedFrames = parsedFrames;
@@ -201,7 +201,7 @@ namespace TennisHighlights
         /// Gets the background.
         /// </summary>
         /// <param name="frameIndex">Index of the frame.</param>
-        public async Task<Mat> GetBackground(int frameIndex)
+        public async Task<MatOfByte3> GetBackground(int frameIndex)
         {
             while (LastBuiltBackground <= frameIndex)
             {

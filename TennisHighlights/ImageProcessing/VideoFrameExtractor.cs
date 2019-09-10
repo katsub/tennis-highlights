@@ -26,11 +26,7 @@ namespace TennisHighlights
         /// <summary>
         /// The target size
         /// </summary>
-        public readonly System.Drawing.Size TargetSize;
-        /// <summary>
-        /// The target size with cv size type
-        /// </summary>
-        public readonly OpenCvSharp.Size CvTargetSize;
+        public readonly OpenCvSharp.Size TargetSize;
         /// <summary>
         /// The video capture
         /// </summary>
@@ -90,7 +86,7 @@ namespace TennisHighlights
         /// <param name="filePath">The file path.</param>
         /// <param name="targetSize">Size of the target.</param>
         /// <param name="videoInfo">The video information.</param>
-        public VideoFrameExtractor(string filePath, System.Drawing.Size targetSize, VideoInfo videoInfo)
+        public VideoFrameExtractor(string filePath, OpenCvSharp.Size targetSize, VideoInfo videoInfo)
         {
             VideoInfo = videoInfo;
 
@@ -103,7 +99,6 @@ namespace TennisHighlights
 
             _videoCapture = new VideoCapture(filePath);
             TargetSize = targetSize;
-            CvTargetSize = new OpenCvSharp.Size(targetSize.Width, targetSize.Height);
             DestRect = new Rectangle(0, 0, TargetSize.Width, TargetSize.Height);
 
             _workers = Enumerable.Range(1, GeneralSettings.FrameExtractionWorkers).Select(i => new VideoFrameExtractorWorker(this)).ToList();

@@ -37,8 +37,8 @@ namespace TennisHighlights
 
             //We assume the video aspect ratio to be 1.78 and the analysed height to be the same from when the balls were calculated
             return BuildRallies(settings.RallyBuildingSettings, arcsPerFrame,
-                                new System.Drawing.Size((int)1.78d * settings.General.VideoAnalysisMaxHeight,
-                                                        settings.General.VideoAnalysisMaxHeight));
+                                new System.Drawing.Size((int)1.78d * settings.General.FrameMaxHeight,
+                                                        settings.General.FrameMaxHeight));
 
         }
 

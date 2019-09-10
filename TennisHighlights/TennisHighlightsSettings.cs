@@ -34,6 +34,7 @@ namespace TennisHighlights
         public const string AutoJoinAll = "AutoChooseRallies";
         public const string FFmpegPath = "FFmpegPath";
         public const string BallExtractionWorkers = "BallExtractionWorkers";
+        public const string FrameMaxHeight = "FrameMaxHeight";
         public const string FrameExtractionWorkers = "FrameExtractionWorkers";
     }
 
@@ -85,15 +86,17 @@ namespace TennisHighlights
         /// <summary>
         /// The number of frame extraction workers
         /// </summary>
-        public static int FrameExtractionWorkers = 10;// = 40;
+        public static int FrameExtractionWorkers = 10;
         /// <summary>
         /// Gets the number of ball extaction workers.
         /// </summary> 
-        public int BallExtractionWorkers { get; } = 20;// = 75;
+        public int BallExtractionWorkers { get; } = 20;
         /// <summary>
-        /// Gets the maximum height of the video analysis. All frames will be converted to this height for the analysis
+        /// Gets the maximum height of frame used in the video analysis. All frames will be resized to this height unless they have equal or 
+        /// smaller height.
+        /// 720 seems like a good value from personal tests, 480 gives some detection errors and 1080 is too slow.
         /// </summary>
-        public int VideoAnalysisMaxHeight { get; } = 720;
+        public int FrameMaxHeight { get; } = 720;
         /// <summary>
         /// Gets the analysed video path
         /// </summary>
@@ -143,6 +146,7 @@ namespace TennisHighlights
                     UseCustomStopFrame = generalSettings.GetBoolElementValue(SettingsKeys.UseCustomStopFrame, false);
                     DisableImagePreview = generalSettings.GetBoolElementValue(SettingsKeys.DisableImagePreview, false);
                     AutoJoinAll = generalSettings.GetBoolElementValue(SettingsKeys.AutoJoinAll, false);
+                    FrameMaxHeight = generalSettings.GetIntElementValue(SettingsKeys.FrameMaxHeight, 720);
                     BallExtractionWorkers = generalSettings.GetIntElementValue(SettingsKeys.BallExtractionWorkers, 20);
                     FrameExtractionWorkers = generalSettings.GetIntElementValue(SettingsKeys.FrameExtractionWorkers, 10);
 
@@ -188,6 +192,7 @@ namespace TennisHighlights
             xElement.AddElementWithValue(SettingsKeys.FFmpegPath, FFmpegPath);
             xElement.AddElementWithValue(SettingsKeys.BallExtractionWorkers, BallExtractionWorkers);
             xElement.AddElementWithValue(SettingsKeys.FrameExtractionWorkers, FrameExtractionWorkers);
+            xElement.AddElementWithValue(SettingsKeys.FrameMaxHeight, FrameMaxHeight);
              
             return xElement;
         }

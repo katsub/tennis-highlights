@@ -44,33 +44,33 @@ namespace TennisHighlights
         /// </summary>
         private static OpenCvSharp.Size _size;
         /// <summary>
-        /// The dilation circle
+        /// The connection dilation circle
         /// </summary>
-        private static Mat _dilationCircle;
+        private static MatOfByte _connectionDilationCircle;
         /// <summary>
-        /// The dilation circle area
+        /// The connection dilation circle area
         /// </summary>
-        private static double _dilationCircleArea;
+        private static double _connectionDilationCircleArea;
         /// <summary>
         /// The contour dilation circle
         /// </summary>
-        private static Mat _contourDilationCircle;
+        private static MatOfByte _lightDilationCircle;
         /// <summary>
         /// The player erosion circle
         /// </summary>
-        private static Mat _playerErosionCircle;
+        private static MatOfByte _playerErosionCircle;
         /// <summary>
         /// The erosion gizmo circle
         /// </summary>
-        private static Mat _erosionGizmoCircle;
+        private static MatOfByte _erosionGizmoCircle;
         /// <summary>
         /// The player dilation circle
         /// </summary>
-        private static Mat _playerDilationCircle;
+        private static MatOfByte _playerDilationCircle;
         /// <summary>
         /// The contour erosion circle
         /// </summary>
-        private static Mat _contourErosionCircle;
+        private static MatOfByte _lightErosionCircle;
         /// <summary>
         /// The zeros
         /// </summary>
@@ -91,15 +91,14 @@ namespace TennisHighlights
 
         //We cache the materials to avoid reallocating and freeing them at every frame. 
         //TODO: there should be classes for each method so that they each have their private variables, these shared local variables are confusing and could lead to bugs
-        private readonly Mat _bgDiffMat = new Mat();
         private readonly MatOfByte3 _gizmoMat;
-        private readonly Mat _diffMat = new Mat();
+        private readonly MatOfByte3 _deltaMat = new MatOfByte3();
         private readonly MatOfByte _dilatedMat = new MatOfByte();
-        private readonly Mat _erodedMat = new Mat();
+        private readonly MatOfByte _erodedMat = new MatOfByte();
         private readonly MatOfByte _timeDeltaMat = new MatOfByte();
-        private readonly Mat _timeAntiDeltaMat = new Mat();
-        private readonly MatOfByte _bgGrey = new MatOfByte();
-        private readonly MatOfByte _bgAntiGrey = new MatOfByte();
+        private readonly MatOfByte _playerBallMat = new MatOfByte();
+        private readonly MatOfByte _bgDeltaMat = new MatOfByte();
+        private readonly MatOfByte _playerOutline = new MatOfByte();
         private readonly MatOfInt _labels = new MatOfInt();
         private readonly MatOfDouble _centroids = new MatOfDouble();
         private readonly MatOfShort _stats = new MatOfShort();
@@ -124,16 +123,19 @@ namespace TennisHighlights
         /// </summary>
         public static void AllocateResolutionDependentMats()
         {
-            var dilationCircleDiameter = new ResolutionDependentParameter(15d, 1d).IntValue;
+            var connectionDilationCircleDiameter = new ResolutionDependentParameter(15d, 1d).IntValue;
 
-            _dilationCircle = ImageUtils.BuildCircleMaskMat(dilationCircleDiameter);
-            _dilationCircleArea = Math.PI * Math.Pow(dilationCircleDiameter / 2d, 2d) / 2d;
+            _connectionDilationCircle = ImageUtils.BuildCircleMaskMat(connectionDilationCircleDiameter);
+            _connectionDilationCircleArea = Math.PI * Math.Pow(connectionDilationCircleDiameter / 2d, 2d) / 2d;
 
-            _contourDilationCircle = ImageUtils.BuildCircleMaskMat(new ResolutionDependentParameter(5d, 1d).IntValue);
-            _playerErosionCircle = ImageUtils.BuildCircleMaskMat(new ResolutionDependentParameter(5d, 1d).IntValue);
-            _erosionGizmoCircle = ImageUtils.BuildCircleMaskMat(new ResolutionDependentParameter(10d, 1d).IntValue);
+            //Noise did not seem to reduce size with the resizing, maybe the increased resizing compensates the natural
+            //noise size reduction?
+            //Was originally 5 for 720p but 5 is also the good value for 480p
+            _playerErosionCircle = ImageUtils.BuildCircleMaskMat(5);
             _playerDilationCircle = ImageUtils.BuildCircleMaskMat(new ResolutionDependentParameter(30d, 1d).IntValue);
-            _contourErosionCircle = ImageUtils.BuildCircleMaskMat(new ResolutionDependentParameter(3d, 1d).IntValue);
+            _erosionGizmoCircle = ImageUtils.BuildCircleMaskMat(new ResolutionDependentParameter(10d, 1d).IntValue);
+            _lightErosionCircle = ImageUtils.BuildCircleMaskMat(new ResolutionDependentParameter(3d, 1d).IntValue);
+            _lightDilationCircle = ImageUtils.BuildCircleMaskMat(new ResolutionDependentParameter(5d, 1d).IntValue);
         }
 
         /// <summary>
@@ -168,47 +170,24 @@ namespace TennisHighlights
         }
 
         /// <summary>
-        /// Gets the minimum background range.
+        /// Calculates the difference between the two input materials, binarizes it and stores it in the output mat.
         /// </summary>
-        private static Scalar _minBackgroundGreyRange { get; } = new Scalar(30);
-        /// <summary>
-        /// Gets the maximum range.
-        /// </summary>
-        private static Scalar _maxGreyRange { get; } = new Scalar(255);
-
-        /// <summary>
-        /// Gets the background difference mat.
-        /// </summary>
-        /// <param name="background">The background.</param>
-        /// <param name="currentMat">The current mat.</param>
-        private Mat GetBackgroundDiffMat(Mat background, MatOfByte3 currentMat)
+        /// <param name="mat1">The mat1.</param>
+        /// <param name="mat2">The mat2.</param>
+        /// <param name="output">The output.</param>
+        private void BinaryDelta(MatOfByte3 mat1, MatOfByte3 mat2, MatOfByte output)
         {
-            Cv2.Absdiff(background, currentMat, _bgDiffMat);
+            //Gets the difference between both images
+            //Absdiff is used over diff because we need negative values to show in the result, instead of being mapped to zero.
+            Cv2.Absdiff(mat1, mat2, _deltaMat);
 
-            Cv2.CvtColor(_bgDiffMat, _bgGrey, ColorConversionCodes.BGR2GRAY);
+            //This is equivalent to getting the value channel of the converted HSV image
+            Cv2.Max(_deltaMat.ExtractChannel(0), _deltaMat.ExtractChannel(1), output);
+            Cv2.Max(_deltaMat.ExtractChannel(2), output, output);
 
-            Cv2.Normalize(_bgGrey, _bgGrey, 0, 255, NormTypes.MinMax);
-
-            Cv2.InRange(_bgGrey, _minBackgroundGreyRange, _maxGreyRange, _bgGrey);
-
-            return _bgGrey;
-        }
-
-        /// <summary>
-        /// Gets the time delta mat.
-        /// </summary>
-        /// <param name="previousMat">The previous mat.</param>
-        /// <param name="currentMat">The current mat.</param>
-        private Mat GetTimeDeltaMat(MatOfByte3 previousMat, MatOfByte3 currentMat)
-        {
-            Cv2.Absdiff(currentMat, previousMat, _diffMat);
-
-            Cv2.Max(_diffMat.ExtractChannel(0), _diffMat.ExtractChannel(1), _timeDeltaMat);
-            Cv2.Max(_diffMat.ExtractChannel(2), _timeDeltaMat, _timeDeltaMat);
-
-            Cv2.InRange(_timeDeltaMat, _settings.MinBrightness, 255, _timeDeltaMat);
-
-            return _timeDeltaMat;
+            //Convert into a binary image
+            //Also, filter the value channel so there's less noise
+            Cv2.InRange(output, _settings.MinBrightness, 255, output);
         }
 
         /// <summary>
@@ -275,30 +254,29 @@ namespace TennisHighlights
                 var statsIndexer = _stats.GetIndexer();
                 MatIndexer<double> centroidIndexer = null;
 
-                for (int i = 0; i < numberOfComponents; i++)
+                //Ignore the background blob (i = 0)
+                for (int i = 1; i < numberOfComponents; i++)
                 {
-                    var width = statsIndexer[i, (int)ConnectedComponentsTypes.Width];
-                    var height = statsIndexer[i, (int)ConnectedComponentsTypes.Height];
+                    var area = statsIndexer[i, (int)ConnectedComponentsTypes.Area];
 
-                    if (width < _size.Width || height < _size.Height)
+                    //Only pick blobs that aren't too big, but aren't too small either, or they could be noise that got dilated
+                    if (area < minPlayerArea && area > _connectionDilationCircleArea)
                     {
-                        var area = statsIndexer[i, (int)ConnectedComponentsTypes.Area];
+                        var width = statsIndexer[i, (int)ConnectedComponentsTypes.Width];
+                        var height = statsIndexer[i, (int)ConnectedComponentsTypes.Height];
+                        var roundness = (double)height / width;
 
-                        if (area < minPlayerArea && area > _dilationCircleArea)
+                        //Only pick somewhat round balls
+                        if (roundness < 2d && roundness > 0.5d)
                         {
-                            var roundness = (double)height / width;
-
-                            if (roundness < 2d && roundness > 0.5d)
+                            if (potentialBalls == null)
                             {
-                                if (potentialBalls == null)
-                                {
-                                    potentialBalls = new List<Accord.Point>();
+                                potentialBalls = new List<Accord.Point>();
 
-                                    centroidIndexer = _centroids.GetIndexer();
-                                }
-
-                                potentialBalls.Add(new Accord.Point((float)centroidIndexer[i, 0], (float)centroidIndexer[i,1]));
+                                centroidIndexer = _centroids.GetIndexer();
                             }
+
+                            potentialBalls.Add(new Accord.Point((float)centroidIndexer[i, 0], (float)centroidIndexer[i, 1]));
                         }
                     }
                 }
@@ -306,125 +284,140 @@ namespace TennisHighlights
         }
 
         /// <summary>
-        /// Extracts the balls from the given current mat.
+        /// Extracts the balls from the assigned current mat.
         /// </summary>
-        /// <param name="previousMat">The previous mat.</param>
-        /// <param name="currentMat">The current mat.</param>
-        /// <param name="background">The background.</param>
-        /// <param name="players">The players.</param>
         public List<Accord.Point> Extract(out Mat gizmoMat)
         {
             gizmoMat = null;
             _currentFrameId = ExtractionArguments.FrameId;
 
-            //Same as below comment, no need to dispose
-            var timeDeltaMat = GetTimeDeltaMat(ExtractionArguments.PreviousMat, ExtractionArguments.CurrentMat);
-            //Actually it's a reference to _bgGrey, no need to dispose it, will be disposed in the end. There's probably a way to code that makes this more obvious
-            var bgDiffMat = GetBackgroundDiffMat(ExtractionArguments.Background, ExtractionArguments.CurrentMat);
-
-            //We remove noise very agressively in order to leave only the players and the ball in this mat
-            Cv2.Erode(bgDiffMat, _dilatedMat, _playerErosionCircle);
-            Cv2.Dilate(_dilatedMat, _timeAntiDeltaMat, _playerDilationCircle);
+            //Calculate the delta between this frame and the previous one (time delta: only moving objects appear)
+            BinaryDelta(ExtractionArguments.PreviousMat, ExtractionArguments.CurrentMat, _timeDeltaMat);
+            //Calculate the delta between the background and the current frame (background delta: only objects that aren't part of the background appear)
+            //This mat is needed because sometimes players don't move enough between the two frames, and the small parts that moved mmay get mistaken by balls
+            //This ensures we have a good estimation of where the players are so we can ignore nearby movement picked in the time delta mat
+            BinaryDelta(ExtractionArguments.Background, ExtractionArguments.CurrentMat, _bgDeltaMat);
 
             if (_drawGizmos)
             {
-                FileManager.WriteTempFile(_currentFrameId.ToString("D6") + "_playerBall.jpeg", _timeAntiDeltaMat, FileManager.FrameFolder);
+                FileManager.WriteTempFile(_currentFrameId.ToString("D6") + "_playerBall.jpeg", _playerBallMat, FileManager.FrameFolder);
             }
 
-            Cv2.BitwiseAnd(timeDeltaMat, bgDiffMat, timeDeltaMat);
-            //big dilation so every moving body part gets connected
-            Cv2.Dilate(timeDeltaMat, _dilatedMat, _dilationCircle);
+            //Filter moving objects / noise that are part of the background by forcing output to be present in both deltas
+            Cv2.BitwiseAnd(_timeDeltaMat, _bgDeltaMat, _timeDeltaMat);
+            //Big dilation so every moving body part gets connected
+            //no erosion allowed: must ensure the player gets fully connected, must reduce the chance of its parts being perceived as balls
+            Cv2.Dilate(_timeDeltaMat, _dilatedMat, _connectionDilationCircle);
 
             if (_drawGizmos)
             {
                 FileManager.WriteTempFile(_currentFrameId.ToString("D6") + "_timeDelta.jpeg", _dilatedMat, FileManager.FrameFolder);
             }
 
-            //If fake balls close to body become a problem, subtracting the combined player blobs material would probably solve it (at the cost of
-            //not detecting balls that become close to body) : might be worth it
-            //Good for detecting far balls that have lost shape, and potential player regions
+            //Get all blobs that aren't too big and are somewhat round: those are the potential balls
             GetPotentialBalls(_dilatedMat, out var balls);
 
             if (balls?.Any() == true)
             {
-                Cv2.Erode(timeDeltaMat, _erodedMat, _contourErosionCircle);
-                Cv2.Dilate(_erodedMat, _dilatedMat, _contourDilationCircle);
+                //We remove noise very agressively in order to leave only the players and the ball in this mat
+                //Furthermore, the excessive dilation connects everything, ensuring that trees leaves will all be merged together forming a big blob, instead of producing lots of fake balls
+                //That's very important because if the wind moves the trees or the camera, this temporarily creates a big blob that hides the ball position 
+                //(if it's between the camera and the trees), which is better than having lots of fake balls that might create a random trajectory
+                Cv2.Erode(_bgDeltaMat, _dilatedMat, _playerErosionCircle);
+                Cv2.Dilate(_dilatedMat, _playerBallMat, _playerDilationCircle);
 
-                //Remove the balls from the mat so we can use to subtract the players areas 
-                var hadPlayers = ExtractPlayersFromUnionMat(_timeAntiDeltaMat);
+                //Remove all big blobs: if the balls is far away and on its own, it won't be part of a player / big blob
+                var hadPlayers = LeaveOnlyBigBlobs(_playerBallMat);
 
-                if (hadPlayers)
+                //Do some light noise removal on the time delta mat: undesirable regions such as trees leaves will still be visible, but so will the ball
+                Cv2.Erode(_timeDeltaMat, _erodedMat, _lightErosionCircle);
+                Cv2.Dilate(_erodedMat, _dilatedMat, _lightDilationCircle);
+               
+                //Delete all balls that inside the big blobs / players
+                Cv2.Subtract(_dilatedMat, _playerBallMat, _dilatedMat);
+
+                if (_drawGizmos || _drawPreviews)
                 {
-                    Cv2.Subtract(_dilatedMat, _timeAntiDeltaMat, _dilatedMat);
-
-                    if (_drawGizmos || _drawPreviews)
+                    //Erode a bit then subtract to build an outline around the big blobs / players
+                    if (hadPlayers)
                     {
-                        if (hadPlayers)
+                        Cv2.Erode(_playerBallMat, _playerOutline, _erosionGizmoCircle);
+
+                        Cv2.Subtract(_playerBallMat, _playerOutline, _playerOutline);
+                    }
+
+                    var gizmoIndexer = _gizmoMat.GetIndexer();
+                    var playerOutlineIndexer = _playerOutline.GetIndexer();
+                    var currentFrameIndexer = ExtractionArguments.CurrentMat.GetIndexer();
+                    var potentialBallsPiecesIndexer = _dilatedMat.GetIndexer();
+
+                    var width = _size.Width;
+
+                    for (int j = 0; j < _size.Height; j++)
+                    {
+                        for (int i = 0; i < width; i++)
                         {
-                            Cv2.Erode(_timeAntiDeltaMat, _bgAntiGrey, _erosionGizmoCircle);
-
-                            Cv2.Subtract(_timeAntiDeltaMat, _bgAntiGrey, _bgAntiGrey);
-                        }
-
-                        var outIndexer = _gizmoMat.GetIndexer();
-                        var playerIndexer = _bgAntiGrey.GetIndexer();
-                        var currentFrameIndexer = ExtractionArguments.CurrentMat.GetIndexer();
-                        var finalBallsIndexer = _dilatedMat.GetIndexer();
-
-                        var width = _size.Width;
-
-                        for (int j = 0; j < _size.Height; j++)
-                        {
-                            for (int i = 0; i < width; i++)
+                            if (potentialBallsPiecesIndexer[j, i] > 0)
                             {
-                                if (finalBallsIndexer[j, i] > 0)
-                                {
-                                    outIndexer[j, i] = new Vec3b(255, 0, 255);
-                                }
-                                else
-                                {
-                                    outIndexer[j, i] = hadPlayers && playerIndexer[j, i] > 0 ? new Vec3b(255, 0, 0)
-                                                                                             : currentFrameIndexer[j, i];
-                                }
+                                gizmoIndexer[j, i] = new Vec3b(255, 0, 255);
+                            }
+                            else
+                            {
+                                gizmoIndexer[j, i] = hadPlayers && playerOutlineIndexer[j, i] > 0 ? new Vec3b(255, 0, 0)
+                                                                                                  : currentFrameIndexer[j, i];
                             }
                         }
-
-                        gizmoMat = _gizmoMat;
                     }
 
-                    if (_drawGizmos)
-                    {
-                        FileManager.WriteTempFile(_currentFrameId.ToString("D6") + "_doubleCheck.jpeg", _dilatedMat, FileManager.FrameFolder);
-                    }
-
-                    DoubleCheckCandidateBallsOnEroded(_dilatedMat, balls);
+                    gizmoMat = _gizmoMat;
                 }
+
+                if (_drawGizmos)
+                {
+                    FileManager.WriteTempFile(_currentFrameId.ToString("D6") + "_doubleCheck.jpeg", _dilatedMat, FileManager.FrameFolder);
+                }
+
+                //Balls was initially populated from all the balls (good size, roundish, away from moving objects) from the very dilated time delta mat. The big dilation ensures that
+                //we get one ball instead of multiple moving parts of that ball (the ball is small so the dilation connects its moving parts)
+                //It also got a BitwiseAnd with the bgDeltaMat, so this filters another bit of fake balls, because noise is unlikely to appear in both
+                //deltas
+                //There was no erosion in that mat, so noise also constitutes potential balls (GetPotentialBalls())
+                //We have built another mat out of timeDeltaMat (the last _dilatedMat) that has been eroded, so it has less noise, and all the big blobs
+                //have been subtracted from it, so players and regions with lots of "balls" (like clusters of leaves)
+                //Basically there's a bunch of noise suppression techniques combined, and the only thing able to bypass all of them should be 
+                //a ball far away from any moving object
+                DoubleCheckCandidateBallsOnEroded(_dilatedMat, balls);
             }
 
             return balls;
         }
 
         /// <summary>
-        /// Extracts the players from union mat.
+        /// Removes everything but the player blobs.
         /// </summary>
-        /// <param name="unionMat">The union mat.</param>
-        private bool ExtractPlayersFromUnionMat(Mat unionMat)
+        /// <param name="mat">The mat.</param>
+        private bool LeaveOnlyBigBlobs(Mat mat)
         {
             var minPlayerArea = _settings.MinPlayerArea.Value;
 
             var hadPlayers = false;
-            var components = Cv2.ConnectedComponentsEx(unionMat, PixelConnectivity.Connectivity4);
-            
+            var components = Cv2.ConnectedComponentsEx(mat, PixelConnectivity.Connectivity4);
+
+            //Keep only blobs that are big, but ignore the background blob
+            //Since this mat originates from the _bgDelta, we try to be more conservative and only get very big blobs (2 * minPlayerArea).
+            //The reason for this is that the bgDelta usually has a lot of noise (it merges 2.5s of backgrounds right now, so even the slightest changes
+            //might cause bigger blobs, which might cover the ball
             var blobsToKeep = components.Blobs.Where(b => b.Area > 2 * minPlayerArea
                                                           && (b.Width < _size.Width || b.Height < _size.Height));
 
+            //Clean the mat by copying zeroes then write all ones masked by the blobs we wanna keep
             if (blobsToKeep.Any())
             {
-                _zeros.CopyTo(unionMat);
+                _zeros.CopyTo(mat);
 
                 hadPlayers = true;
 
-                components.FilterBlobs(_ones, unionMat, blobsToKeep);
+                components.FilterBlobs(_ones, mat, blobsToKeep);
             }
 
             return hadPlayers;
@@ -476,15 +469,14 @@ namespace TennisHighlights
         /// </summary>
         public void Dispose()
         {
-            _bgDiffMat.Dispose();
             _gizmoMat.Dispose();
-            _diffMat.Dispose();
+            _deltaMat.Dispose();
             _dilatedMat.Dispose();
             _erodedMat.Dispose();
             _timeDeltaMat.Dispose();
-            _timeAntiDeltaMat.Dispose();
-            _bgGrey.Dispose();
-            _bgAntiGrey.Dispose();
+            _playerBallMat.Dispose();
+            _bgDeltaMat.Dispose();
+            _playerOutline.Dispose();
             _labels.Dispose();
             _centroids.Dispose();
             _stats.Dispose();
