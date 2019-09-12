@@ -46,7 +46,7 @@ namespace TennisHighlights
 
                 if (settings.General.DrawGizmos)
                 {
-                    GizmoDrawer.BuildRallyGizmoVideo(ballsPerFrame, rallies, settings, videoInfo);
+                    //GizmoDrawer.BuildRallyGizmoVideo(ballsPerFrame, rallies, settings, videoInfo);
                 }
                 else
                 {

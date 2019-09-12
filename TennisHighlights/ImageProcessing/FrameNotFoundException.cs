@@ -2,6 +2,10 @@
 
 namespace TennisHighlights.ImageProcessing
 {
+    /// <summary>
+    /// The frame not found exception
+    /// </summary>
+    /// <seealso cref="System.Exception" />
     public class FrameNotFoundException : Exception
     {
         /// <summary>

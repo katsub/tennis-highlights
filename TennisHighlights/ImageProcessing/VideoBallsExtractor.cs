@@ -12,7 +12,9 @@ using TennisHighlights.Utils;
 namespace TennisHighlights.ImageProcessing
 {
     /// <summary>
-    /// The video balls extractor
+    /// The video balls extractor: the main class for extracting balls from frames, basically manages the videoFrameExtractor (which extracts frames from
+    /// the video), the frameBallExtractors (which extract balls from the frames) and the background extractor (which builds backgrounds that are used in 
+    /// the ball extraction process).
     /// </summary>
     public class VideoBallsExtractor
     {
@@ -65,17 +67,17 @@ namespace TennisHighlights.ImageProcessing
         /// </summary>
         private readonly Action<Bitmap, int> _progressUpdateAction;
         /// <summary>
-        /// The check if cancel requested
+        /// The check if cancel requested, signals the user has requested the cancelling of the extraction.
         /// </summary>
         private readonly Func<bool> _checkIfCancelRequested;
         /// <summary>
-        /// The should update
+        /// The should send update to GUI
         /// </summary>
-        private bool _shouldUpdate;
+        private bool _shouldSendUpdateToGUI;
         /// <summary>
-        /// The preview image count
-        /// </summary>
-        private int _previewImageCount;
+        /// The updates without sending preview image
+        /// </summary> 
+        private int _updatesWithoutSendingPreviewImage;
 
         /// <summary>
         /// The frames processed
@@ -157,13 +159,13 @@ namespace TennisHighlights.ImageProcessing
                 {
                     Action<Bitmap> onGizmoDrawn = null;
 
-                    if (_shouldUpdate)
+                    if (_shouldSendUpdateToGUI)
                     {
-                        _shouldUpdate = false;
+                        _shouldSendUpdateToGUI = false;
 
-                        _previewImageCount++;
+                        _updatesWithoutSendingPreviewImage++;
 
-                        if (_previewImageCount % 3 == 0)
+                        if (_updatesWithoutSendingPreviewImage % 3 == 0)
                         {
                             onGizmoDrawn = (bitmap) =>
                             {
@@ -202,7 +204,10 @@ namespace TennisHighlights.ImageProcessing
             Task.Run(() => extractor.ExtractAndDrawGizmos());
         }
 
-        private Dictionary<int, List<Accord.Point>> ConvertToDico()
+        /// <summary>
+        /// Gets the balls per frame dictionary.
+        /// </summary>
+        private Dictionary<int, List<Accord.Point>> GetBallsPerFrameDictionary()
         {
             var dico = new Dictionary<int, List<Accord.Point>>();
 
@@ -239,9 +244,10 @@ namespace TennisHighlights.ImageProcessing
 
             lastParsedFrame = _processedFileLog.Balls.LastOrDefault().Key;
 
-            if (lastParsedFrame >= _videoInfo.TotalFrames - 150)
+            //If all frames have already been parsed, return the results
+            if (lastParsedFrame >= _videoInfo.TotalFrames)
             {
-                return ConvertToDico();
+                return GetBallsPerFrameDictionary();
             }
 
             using (_frameExtractor = new VideoFrameExtractor(_settings.General.AnalysedVideoPath, _targetSize, _videoInfo))
@@ -266,6 +272,8 @@ namespace TennisHighlights.ImageProcessing
 
                         _timer.Elapsed += Timer_Elapsed;
 
+                        //TODO: the videoframeextractor should be set up to start where it had stopped instead of frame skipping till it gets to that point
+                        //Frame skipping is kinda quick so that's not critical, but it's an improvement
                         for (i = 1; i < _videoInfo.TotalFrames; i++)
                         {
                             if (i >= lastFrame || _checkIfCancelRequested?.Invoke() == true) { break; }
@@ -290,9 +298,9 @@ namespace TennisHighlights.ImageProcessing
                             }
                             else
                             {
-                                if (_shouldUpdate)
+                                if (_shouldSendUpdateToGUI)
                                 {
-                                    _shouldUpdate = false;
+                                    _shouldSendUpdateToGUI = false;
 
                                     if (!_checkIfCancelRequested?.Invoke() == true)
                                     {
@@ -307,6 +315,7 @@ namespace TennisHighlights.ImageProcessing
 
                             LastAssignedFrame = i;
 
+                            //Serialize balls periodically so we won't lose all the work in case the application is suddenly stopped/closed
                             if (i % _settings.General.FramesPerBackup == 0 && calculateBalls)
                             {
                                 SerializeBalls();
@@ -330,7 +339,7 @@ namespace TennisHighlights.ImageProcessing
                 GizmoDrawer.BuildGizmoVideo(_videoInfo.FrameRate, _targetSize, _processedFileLog.Balls.Last().Key);
             }
 
-            return ConvertToDico();
+            return GetBallsPerFrameDictionary();
         }
 
         /// <summary>
@@ -338,11 +347,11 @@ namespace TennisHighlights.ImageProcessing
         /// </summary>
         /// <param name="source">The source of the event.</param>
         /// <param name="e">The <see cref="System.Timers.ElapsedEventArgs" /> instance containing the event data.</param>
-        private void Timer_Elapsed(Object source, ElapsedEventArgs e)
+        private void Timer_Elapsed(object source, ElapsedEventArgs e)
         {
             var freeWorkers = _ballExtractors.Where(b => !b.IsBusy).Count();
 
-            _shouldUpdate = true;
+            _shouldSendUpdateToGUI = true;
 
             Logger.Log(LogType.Information, "\rFrame[Processed=" + FramesProcessed + ", Loaded=" + _frameExtractor.FramesLoaded
                                                      + ", BG=" + _backgroundExtractor.LastFrameWithBuiltBackground

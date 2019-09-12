@@ -13,10 +13,6 @@ namespace TennisHighlights.ImageProcessing
         /// </summary>
         public bool IsBusy => _mat != null;
         /// <summary>
-        /// Gets a value indicating whether this instance is disposed.
-        /// </summary>
-        public bool IsDisposed { get; private set; }
-        /// <summary>
         /// The assigned frame index
         /// </summary>
         private int _assignedFrameIndex;
@@ -50,16 +46,6 @@ namespace TennisHighlights.ImageProcessing
             _mat = mat;
             _resizeMat = resizeMat;
         }
-
-        /// <summary>
-        /// Stops this instance.
-        /// </summary>
-        public void Stop() => IsDisposed = true;
-
-        /// <summary>
-        /// Releases unmanaged and - optionally - managed resources.
-        /// </summary>
-        public void Dispose() => Stop();
 
         /// <summary>
         /// Processes the frame.

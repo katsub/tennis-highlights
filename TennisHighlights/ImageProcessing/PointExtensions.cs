@@ -1,5 +1,4 @@
 ﻿using Accord;
-using Accord.Math.Geometry;
 using System;
 
 namespace TennisHighlights.ImageProcessing

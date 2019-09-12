@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Windows;
 using TennisHighlights.ImageProcessing;
 using TennisHighlights.Moves;
 using TennisHighlights.Rallies;
@@ -43,6 +42,39 @@ namespace TennisHighlights.Annotation
         }
 
         /// <summary>
+        /// Initializes the <see cref="GizmoDrawer" /> class.
+        /// </summary>
+        /// <param name="originalFrameRate">The original frame rate.</param>
+        /// <param name="targetSize">Size of the target.</param>
+        /// <param name="lastFrameIndex">Last index of the frame.</param>
+        public static void BuildGizmoVideo(double originalFrameRate, OpenCvSharp.Size targetSize, int lastFrameIndex)
+        {
+            var frameRate = (int)Math.Round(originalFrameRate * 1.3d);
+            var path = Path.GetFullPath(FileManager.TempDataPath + "output.avi");
+
+            using (var frameMat = new MatOfByte3(targetSize))
+            using (var videoWriter = new VideoWriter(path, FourCC.MJPG, frameRate, targetSize))
+            {               
+                for (int i = 0; i < lastFrameIndex; i++)
+                {
+                    var frame = FileManager.ReadTempBitmapFile(i.ToString("D6") + ".jpg", FileManager.FrameFolder);
+
+                    if (frame != null)
+                    {
+                        BitmapConverter.ToMat(frame, frameMat);
+
+                        var final = frameMat.Resize(targetSize);
+
+                        videoWriter.Write(final);
+
+                        final.Dispose();
+                    }
+                }
+            }
+        }
+
+        /*Those methods were part of the original command-line version. Might be reactivated someday if the need arises (there's some refactoring to do)
+        /// <summary>
         /// Draws the rallies.
         /// </summary>
         /// <param name="rallies">The rallies.</param>
@@ -50,7 +82,7 @@ namespace TennisHighlights.Annotation
         {
             Logger.Log(LogType.Information, "Drawing rallies...");
 
-            FillRallies(rallies);
+            FillRalliesMissingFrames(rallies);
 
             var i = 0;
 
@@ -86,38 +118,6 @@ namespace TennisHighlights.Annotation
         }
 
         /// <summary>
-        /// Initializes the <see cref="GizmoDrawer" /> class.
-        /// </summary>
-        /// <param name="originalFrameRate">The original frame rate.</param>
-        /// <param name="targetSize">Size of the target.</param>
-        /// <param name="lastFrameIndex">Last index of the frame.</param>
-        public static void BuildGizmoVideo(double originalFrameRate, OpenCvSharp.Size targetSize, int lastFrameIndex)
-        {
-            var frameRate = (int)Math.Round(originalFrameRate * 1.3d);
-            var path = Path.GetFullPath(FileManager.TempDataPath + "output.avi");
-
-            using (var frameMat = new MatOfByte3(targetSize))
-            using (var videoWriter = new VideoWriter(path, FourCC.MJPG, frameRate, targetSize))
-            {               
-                for (int i = 0; i < lastFrameIndex; i++)
-                {
-                    var frame = FileManager.ReadTempBitmapFile(i.ToString("D6") + ".jpg", FileManager.FrameFolder);
-
-                    if (frame != null)
-                    {
-                        BitmapConverter.ToMat(frame, frameMat);
-
-                        var final = frameMat.Resize(targetSize);
-
-                        videoWriter.Write(final);
-
-                        final.Dispose();
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// Builds the rally video.
         /// </summary>
         /// <param name="ballsPerFrame">The balls per frame.</param>
@@ -129,45 +129,46 @@ namespace TennisHighlights.Annotation
 
             DrawRallies(rallies);
 
-//            var videoWriter = new VideoFileWriter();
-            var framerate = (int)Math.Round(videoInfo.FrameRate * 1.3d);
-            var path = Path.GetFullPath(FileManager.TempDataPath + "output.avi");
-            var lastFrame = ballsPerFrame.Last().Key;
-            var firstBitmapRead = true;
+            var path = Path.GetFullPath(FileManager.TempDataPath + "output_with_rallies.avi");
 
-            for (int i = 0; i < lastFrame; i++)
+            //using (var videoWriter = new VideoWriter(path, FourCC.MJPG, frameRate, targetSize))
             {
-                if (settings.General.UseCustomStartFrame && i < settings.General.CustomStartMinute) { continue; }
+                var framerate = (int)Math.Round(videoInfo.FrameRate * 1.3d);
+                var lastFrame = ballsPerFrame.Last().Key;
+                var firstBitmapRead = true;
 
-                var frame = FileManager.ReadTempBitmapFile(i.ToString("D6") + ".jpg", FileManager.RallyFolder);
-
-                if (frame == null) { frame = FileManager.ReadTempBitmapFile(i.ToString("D6") + ".jpg", FileManager.FrameFolder); }
-
-                if (frame != null)
+                for (int i = 0; i < lastFrame; i++)
                 {
-                    if (firstBitmapRead)
+                    if (settings.General.UseCustomStartFrame && i < settings.General.CustomStartMinute) { continue; }
+
+                    var frame = FileManager.ReadTempBitmapFile(i.ToString("D6") + ".jpg", FileManager.RallyFolder);
+
+                    if (frame == null) { frame = FileManager.ReadTempBitmapFile(i.ToString("D6") + ".jpg", FileManager.FrameFolder); }
+
+                    if (frame != null)
                     {
-  //                      videoWriter.Open(path, frame.Width, frame.Height, framerate, VideoCodec.MPEG4, videoBitRate);
+                        if (firstBitmapRead)
+                        {
+                            //                      videoWriter.Open(path, frame.Width, frame.Height, framerate, VideoCodec.MPEG4, videoBitRate);
 
-                        firstBitmapRead = false;
+                            firstBitmapRead = false;
+                        }
+
+                        //                videoWriter.WriteVideoFrame(frame);
+
+                        frame.Dispose();
                     }
-
-    //                videoWriter.WriteVideoFrame(frame);
-
-                    frame.Dispose();
                 }
             }
-
-      //      videoWriter.Close();
 
             Logger.Log(LogType.Information, "Done. " + stopwatch.Elapsed);
         }
 
         /// <summary>
-        /// Fills the rallies.
+        /// Fills the rallies missing frames.
         /// </summary>
         /// <param name="rallies">The rallies.</param>
-        private static void FillRallies(List<Rally> rallies)
+        private static void FillRalliesMissingFrames(List<Rally> rallies)
         {
             foreach (var rally in rallies)
             {
@@ -188,6 +189,7 @@ namespace TennisHighlights.Annotation
 
                         var missingFrames = ball.Key - previousBall.Key - 1;
 
+                        //If the ball had not been detected between two frames, we interpolate its likely position from neighbouring detected frames so we have a continuous trajectory in the video
                         for (int i = 1; i <= missingFrames; i++)
                         {
                             var missingPosition = previousBall.Value.Position.Multiply((double)(missingFrames - i) / missingFrames)
@@ -212,5 +214,6 @@ namespace TennisHighlights.Annotation
                 }
             }
         }
+        */
     }
 }

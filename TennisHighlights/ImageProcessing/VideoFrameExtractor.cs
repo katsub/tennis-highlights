@@ -1,7 +1,6 @@
 ﻿using OpenCvSharp;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,12 +10,12 @@ using TennisHighlights.Utils;
 namespace TennisHighlights
 {
     /// <summary>
-    /// The video frame extractor
+    /// The video frame extractor, responsible for loading the video's frames in a background task
     /// </summary>
     public class VideoFrameExtractor : IDisposable
     {
         /// <summary>
-        /// The buffer size
+        /// The buffer size, the number of frames that can be loaded in memory waiting to be extracted
         /// </summary>
         public const int BufferSize = 400;
         /// <summary>
@@ -49,13 +48,9 @@ namespace TennisHighlights
         /// </summary>
         private readonly List<BusyMat> _resizeBusyMatPool = new List<BusyMat>();
         /// <summary>
-        /// The worker
+        /// The workers
         /// </summary>
         private readonly List<VideoFrameExtractorWorker> _workers;
-        /// <summary>
-        /// The destination rectangle
-        /// </summary>
-        public readonly Rectangle DestRect;
         /// <summary>
         /// The is extracting
         /// </summary>
@@ -99,7 +94,6 @@ namespace TennisHighlights
 
             _videoCapture = new VideoCapture(filePath);
             TargetSize = targetSize;
-            DestRect = new Rectangle(0, 0, TargetSize.Width, TargetSize.Height);
 
             _workers = Enumerable.Range(1, GeneralSettings.FrameExtractionWorkers).Select(i => new VideoFrameExtractorWorker(this)).ToList();
         }
@@ -130,6 +124,7 @@ namespace TennisHighlights
 
                     busyMat.SetBusy();
 
+                    //Read a frame into a mat with a busy flag that was not being used
                     _videoCapture.Read(busyMat.Mat);
 
                     if (busyMat.Mat == null)
@@ -153,6 +148,7 @@ namespace TennisHighlights
 
                         resizeBusyMat.SetBusy();
 
+                        //Assign it to a free worker who'll resize it in a separate task if necessary and then add it o the frame cache
                         freeWorker.AssignFrame(i, busyMat, resizeBusyMat);
 
                         _cacheUsedSize++;
@@ -301,11 +297,6 @@ namespace TennisHighlights
                 foreach (var mat in _busyMatPool)
                 {
                     mat.Mat.Dispose();
-                }
-
-                foreach (var worker in _workers)
-                {
-                    worker.Dispose();
                 }
 
                 foreach (var frame in _frameCache)

@@ -4,6 +4,9 @@ using System.Drawing;
 
 namespace TennisHighlights.ImageProcessing
 {
+    /// <summary>
+    /// The frame extraction arguments
+    /// </summary>
     public class FrameExtractionArguments
     {
         /// <summary>
