@@ -18,19 +18,15 @@ namespace TennisHighlights
         /// <summary>
         /// The maximum double check ball center squared distance
         /// </summary>
-        private static ResolutionDependentParameter _maxDoubleCheckBallCenterSquaredDistance = new ResolutionDependentParameter(225d, 2d);
+        private static readonly ResolutionDependentParameter _maxDoubleCheckBallCenterSquaredDistance = new ResolutionDependentParameter(225d, 2d);
         /// <summary>
-        /// The draw gizmos
+        /// The draw gizmos. Debug option that allows us to see each frame with gizmos coresponding to detected players and balls in the temp folder
         /// </summary>
         private readonly bool _drawGizmos;
         /// <summary>
         /// The draw previews
         /// </summary>
         private readonly bool _drawPreviews;
-        /// <summary>
-        /// The current frame identifier
-        /// </summary>
-        private int _currentFrameId;
         /// <summary>
         /// The settings
         /// </summary>
@@ -39,6 +35,10 @@ namespace TennisHighlights
         /// The on extraction over
         /// </summary>
         private readonly Action<int, List<Accord.Point>> _onExtractionOver;
+        /// <summary>
+        /// The current frame identifier
+        /// </summary>
+        private int _currentFrameId;
         /// <summary>
         /// The size
         /// </summary>
@@ -90,7 +90,6 @@ namespace TennisHighlights
         public FrameExtractionArguments ExtractionArguments { get; private set; }
 
         //We cache the materials to avoid reallocating and freeing them at every frame. 
-        //TODO: there should be classes for each method so that they each have their private variables, these shared local variables are confusing and could lead to bugs
         private readonly MatOfByte3 _gizmoMat;
         private readonly MatOfByte3 _deltaMat = new MatOfByte3();
         private readonly MatOfByte _dilatedMat = new MatOfByte();
@@ -222,6 +221,7 @@ namespace TennisHighlights
 
                 for (int j = 0; j < numberOfComponents; j++)
                 {
+                    //Check if there's at least one ball in there eroded mat that's close to one of the potential balls
                     if (Math.Pow(potentialBall.X - x[j], 2) + Math.Pow(potentialBall.Y - y[j], 2) < maxDoubleCheckBallCenterSquaredDistance)
                     {
                         foundBall = true;
@@ -298,11 +298,6 @@ namespace TennisHighlights
             //This ensures we have a good estimation of where the players are so we can ignore nearby movement picked in the time delta mat
             BinaryDelta(ExtractionArguments.Background, ExtractionArguments.CurrentMat, _bgDeltaMat);
 
-            if (_drawGizmos)
-            {
-                FileManager.WriteTempFile(_currentFrameId.ToString("D6") + "_playerBall.jpeg", _playerBallMat, FileManager.FrameFolder);
-            }
-
             //Filter moving objects / noise that are part of the background by forcing output to be present in both deltas
             Cv2.BitwiseAnd(_timeDeltaMat, _bgDeltaMat, _timeDeltaMat);
             //Big dilation so every moving body part gets connected
@@ -325,6 +320,11 @@ namespace TennisHighlights
                 //(if it's between the camera and the trees), which is better than having lots of fake balls that might create a random trajectory
                 Cv2.Erode(_bgDeltaMat, _dilatedMat, _playerErosionCircle);
                 Cv2.Dilate(_dilatedMat, _playerBallMat, _playerDilationCircle);
+
+                if (_drawGizmos)
+                {
+                    FileManager.WriteTempFile(_currentFrameId.ToString("D6") + "_playerBall.jpeg", _playerBallMat, FileManager.FrameFolder);
+                }
 
                 //Remove all big blobs: if the balls is far away and on its own, it won't be part of a player / big blob
                 var hadPlayers = LeaveOnlyBigBlobs(_playerBallMat);

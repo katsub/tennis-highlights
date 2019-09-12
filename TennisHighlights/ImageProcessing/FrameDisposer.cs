@@ -73,7 +73,7 @@ namespace TennisHighlights.ImageProcessing
                     }
                 }
 
-                var lastDisposedFrame = Math.Min(lastDisposableFrameForBallExtractors, _backgroundExtractor.LastBuiltBackground);
+                var lastDisposedFrame = Math.Min(lastDisposableFrameForBallExtractors, _backgroundExtractor.LastFrameWithBuiltBackground);
 
                 if (lastDisposedFrame > LastDisposedFrame)
                 {

@@ -1,5 +1,4 @@
 ﻿using OpenCvSharp;
-using OpenCvSharp.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,15 +9,11 @@ using TennisHighlights.Utils;
 namespace TennisHighlights
 {
     /// <summary>
-    /// The background extractor
+    /// The background extractor. Supplies backgrounds formed by clustering multiple frames sampled over a (relatively) long interval
     /// </summary>
     public class BackgroundExtractor : IDisposable
     {
-        /// <summary>
-        /// The cache backgrounds
-        /// </summary>
-        private const bool _cacheBackgrounds = false;
-        /// <summary>
+         /// <summary>
         /// The loaded backgrounds lock
         /// </summary>
         private readonly object _loadedBackgroundsLock = new object();
@@ -29,7 +24,7 @@ namespace TennisHighlights
         /// <summary>
         /// The size
         /// </summary>
-        private readonly OpenCvSharp.Size _size;
+        private readonly Size _size;
         /// <summary>
         /// The frame extractor
         /// </summary>
@@ -43,9 +38,9 @@ namespace TennisHighlights
         /// </summary>
         private readonly VideoInfo _videoInfo;
         /// <summary>
-        /// The refresh increment
+        /// The frames per background: the amount of frames that can use this background (which are those in the interval used to calculate this background)
         /// </summary>
-        private readonly int _refreshIncrement;
+        private readonly int _framesPerBackground;
         /// <summary>
         /// The loaded backgrounds
         /// </summary>
@@ -55,27 +50,21 @@ namespace TennisHighlights
         /// </summary>
         private readonly List<MatOfByte3> _allocatedMatPool = new List<MatOfByte3>();
         /// <summary>
-        /// The sampled frames
+        /// The last built frame with a built background (the last frame that has a valid built background, this tells us the frameballextractor can
+        /// process up to that frame, because after it we still don't have the background frame needed)
         /// </summary>
-        private readonly List<MatOfByte3> _sampledFrames = new List<MatOfByte3>();
+        public int LastFrameWithBuiltBackground { get; private set; }
         /// <summary>
-        /// The last built background
+        /// The last parsed frame (since it came from the log, we don't need backgrounds up to that point: all those frames have already been extracted
+        /// and analysed in a previous run)
         /// </summary>
-        public int LastBuiltBackground { get; private set; }
+        private readonly int _lastParsedFrame;
         /// <summary>
-        /// The parsed frames
+        /// The last frame to extract (might be the last frame of the video or an early frame, if the user has selected the option to stop early
         /// </summary>
-        private readonly int _parsedFrames;
+        private readonly int _lastFrameToExtract;
         /// <summary>
-        /// The frames to extract
-        /// </summary>
-        private readonly int _framesToExtract;
-        /// <summary>
-        /// The is busy
-        /// </summary>
-        private bool _isBusy;
-        /// <summary>
-        /// The asked to stop
+        /// The asked to stop: signals an early source has demanded the extractoin to stop
         /// </summary>
         private bool _askedToStop;
         /// <summary>
@@ -85,7 +74,7 @@ namespace TennisHighlights
         /// <summary>
         /// Gets a value indicating whether this instance has frames left to extract.
         /// </summary>
-        private bool _hasFramesLeftToExtract => LastBuiltBackground < _videoInfo.TotalFrames && LastBuiltBackground < _framesToExtract;
+        private bool _hasFramesLeftToExtract => LastFrameWithBuiltBackground < _lastFrameToExtract;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BackgroundExtractor" /> class.
@@ -95,25 +84,25 @@ namespace TennisHighlights
         /// <param name="startingFrame">The starting frame.</param>
         /// <param name="settings">The settings.</param>
         /// <param name="videoInfo">The video information.</param>
-        /// <param name="parsedFrames">The parsed frames.</param>
-        /// <param name="framesToExtract">The frames to extract.</param>
-        public BackgroundExtractor(VideoFrameExtractor frameExtractor, OpenCvSharp.Size targetSize, int startingFrame, BackgroundExtractionSettings settings, VideoInfo videoInfo,
-                                   int parsedFrames, int framesToExtract)
+        /// <param name="lastParsedFrame">The last parsed frame.</param>
+        /// <param name="lastFrameToExtract">The last frame to extract.</param>
+        public BackgroundExtractor(VideoFrameExtractor frameExtractor, Size targetSize, int startingFrame, BackgroundExtractionSettings settings, VideoInfo videoInfo,
+                                   int lastParsedFrame, int lastFrameToExtract)
         {
-            _parsedFrames = parsedFrames;
+            _lastParsedFrame = lastParsedFrame;
 
-            _framesToExtract = framesToExtract;
+            _lastFrameToExtract = lastFrameToExtract;
             _videoInfo = videoInfo;
             _frameExtractor = frameExtractor;
             _settings = settings;
             _size = targetSize;
-            _refreshIncrement = settings.NumberOfSamples * settings.FramesPerSample;
+            _framesPerBackground = settings.NumberOfSamples * settings.FramesPerSample;
 
-            _backgroundCache = new MatOfByte3[(int)Math.Ceiling((double)videoInfo.TotalFrames / _refreshIncrement)];
+            _backgroundCache = new MatOfByte3[(int)Math.Ceiling((double)videoInfo.TotalFrames / _framesPerBackground)];
 
-            while (LastBuiltBackground + _refreshIncrement < _parsedFrames)
+            while (LastFrameWithBuiltBackground + _framesPerBackground < _lastParsedFrame)
             {
-                LastBuiltBackground += _refreshIncrement;
+                LastFrameWithBuiltBackground += _framesPerBackground;
             }
         }
 
@@ -133,13 +122,12 @@ namespace TennisHighlights
         private async Task ExtractBackgroundsInBackgroundTaskInternal()
         {
             _askedToStop = false;
+
             while (!_askedToStop && _hasFramesLeftToExtract)
             {
-                if (!_isBusy && _loadedBackgrounds.Count < 4 && _hasFramesLeftToExtract)
+                if (_loadedBackgrounds.Count < 4 && _hasFramesLeftToExtract)
                 {
-                    _isBusy = true;
-
-                    await Task.Run(() => LoadBackgroundAndAddIt());
+                    await LoadBackgroundAndAddIt();
                 }
                 else
                 {
@@ -151,25 +139,23 @@ namespace TennisHighlights
         /// <summary>
         /// Loads the background and add it.
         /// </summary>
-        private async void LoadBackgroundAndAddIt()
+        private async Task LoadBackgroundAndAddIt()
         {
-            var background = await LoadBackground(LastBuiltBackground);
+            var background = await LoadBackground(LastFrameWithBuiltBackground);
 
-            //We update lastbuiltbackground so that we know it has been built for this frame. This needs the lock because last built background
-            //decides if we get loadedbackgrounds or not
+            //We update lastbuiltbackground so that we know it has been built for this frame. This needs the lock because the disposer will be trying
+            //to access loaded backgrounds at the same time
             lock (_loadedBackgroundsLock)
             {
                 if (background != null)
                 {
-                    _loadedBackgrounds.Add(LastBuiltBackground + _refreshIncrement, background);
+                    _loadedBackgrounds.Add(LastFrameWithBuiltBackground + _framesPerBackground, background);
 
-                    _backgroundCache[((LastBuiltBackground + _refreshIncrement) / _refreshIncrement) - 1] = background;
+                    _backgroundCache[((LastFrameWithBuiltBackground + _framesPerBackground) / _framesPerBackground) - 1] = background;
                 }
 
-                LastBuiltBackground += _refreshIncrement;
+                LastFrameWithBuiltBackground += _framesPerBackground;
             }
-
-            _isBusy = false;
         }
 
         /// <summary>
@@ -203,7 +189,7 @@ namespace TennisHighlights
         /// <param name="frameIndex">Index of the frame.</param>
         public async Task<MatOfByte3> GetBackground(int frameIndex)
         {
-            while (LastBuiltBackground <= frameIndex)
+            while (LastFrameWithBuiltBackground <= frameIndex)
             {
                 await Task.Delay(200);
 
@@ -215,7 +201,7 @@ namespace TennisHighlights
                 }
             }
 
-            var indexInCache = (int)Math.Floor((double)frameIndex / _refreshIncrement);
+            var indexInCache = (int)Math.Floor((double)frameIndex / _framesPerBackground);
             //We return the oldest background that has a bigger index than the asked one
             //(For a refresh rate = 150 , a background with index 150 is built over using 0 to 150, so if we ask for frame 93,
             //that's the background we want)
@@ -261,23 +247,9 @@ namespace TennisHighlights
         /// <param name="startFrame">The start frame.</param>
         private async Task<MatOfByte3> LoadBackground(int startFrame)
         {
-            var bgFinalFrame = startFrame + _refreshIncrement;
-
-            var backgroundFileName = "background_" + bgFinalFrame + ".bmp";
+            var bgFinalFrame = startFrame + _framesPerBackground;
 
             MatOfByte3 background = null;
-
-            using (var cachedBMP = FileManager.ReadPersistentBitmapFile(backgroundFileName))
-            {
-                if (cachedBMP != null)
-                {
-                    Logger.Log(LogType.Information, "Loading background " + bgFinalFrame);
-
-                    background = GetMatFromPool();
-
-                    BitmapConverter.ToMat(cachedBMP, background);
-                }
-            }
 
             if (background == null)
             {
@@ -288,25 +260,6 @@ namespace TennisHighlights
                 if (newBackground != null)
                 {
                     background = newBackground;
-                }
-                else if (background == null)
-                {
-                    //If the new background was null and we didn't have a background before (because reading from cache), we restore the most
-                    //recent background from cache
-                    using (var cachedBMP = FileManager.ReadPersistentBitmapFile("background_" + startFrame + ".bmp"))
-                    {
-                        if (cachedBMP != null)
-                        {
-                            background = GetMatFromPool();
-
-                            BitmapConverter.ToMat(cachedBMP, background);
-                        }
-                    }
-                }
-
-                if (ConditionalCompilation.Debug && _cacheBackgrounds)
-                {
-                    FileManager.WritePersistentFile(backgroundFileName, background);
                 }
             }
 
@@ -324,7 +277,7 @@ namespace TennisHighlights
 
             //Extractor might begin waiting for a frame that's far away and will throw an exception when the video frame extractor is stopped.
             //Ideally, this should be able to stop waiting for the frame when the extractor is asked to stop, but it'll need a little refactorization
-            //for that... not a huge priority right now
+            //for that...
             try
             {
                 firstFrame = await _frameExtractor.GetFrameAsync(startFrame);
@@ -339,20 +292,17 @@ namespace TennisHighlights
                 }
             }
 
-            var sampleSize = _settings.ClusteringSize;
             var maxNumberOfSamples = _settings.NumberOfSamples;
             var framesPerSample = _settings.FramesPerSample;
 
-            if (sampleSize % 2 == 0) { throw new Exception("Sample size must be an odd number"); }
+            var sampledFrames = new List<MatOfByte3>();
 
-            var i = 0;
-            var numberOfSampledFrames = 0;
-
-            _sampledFrames.Clear();
-
-            while (numberOfSampledFrames < maxNumberOfSamples)
+            while (sampledFrames.Count < maxNumberOfSamples)
             {
-                var getFrameIndex = startFrame + i;
+                //Jump (framesPerSample) frames, sample a frame, then repeat: this gets us spaced frames which will have plenty of player movement on the
+                //background (players and balls and other moving objects will spend little time on each part of the background and thus be ignored in the
+                //clustering, which will be dominated by the actual background
+                var getFrameIndex = startFrame + sampledFrames.Count * framesPerSample;
 
                 if (getFrameIndex >= _videoInfo.TotalFrames) { return null; }
 
@@ -368,39 +318,39 @@ namespace TennisHighlights
                 {
                     if (!_askedToStop)
                     {
-                        Logger.Log(LogType.Warning, "Could not get frame " + getFrameIndex + " althought the background extractor was not asked to stop.");
+                        Logger.Log(LogType.Warning, "Could not get frame " + getFrameIndex + " although the background extractor was not asked to stop.");
 
                         return null;
                     }
                 }
 
-                i++;
-
-                if (i % framesPerSample == 0)
-                {
-                    _sampledFrames.Add(frame);
-
-                    numberOfSampledFrames++;
-                }
-
-                if (numberOfSampledFrames >= maxNumberOfSamples) { break; }
+                sampledFrames.Add(frame);
             }
 
-            return BuildBackgroundByClustering(sampleSize, _sampledFrames);
+            return BuildBackgroundByClustering(sampledFrames);
         }
 
         /// <summary>
         /// Builds the background by clustering.
         /// </summary>
-        /// <param name="sampleSize">Size of the sample.</param>
         /// <param name="sampledFrames">The sampled frames.</param>
-        private MatOfByte3 BuildBackgroundByClustering(int sampleSize, List<MatOfByte3> sampledFrames)
+        private MatOfByte3 BuildBackgroundByClustering(List<MatOfByte3> sampledFrames)
         {
+            var sampleSize = _settings.ClusteringSize;
+
+            if (sampleSize % 2 == 0) { throw new Exception("Sample size must be an odd number"); }
+
             var halfStep = (sampleSize - 1) / 2;
 
             var bgMat = GetMatFromPool();
             var bgIndexer = bgMat.GetIndexer();
 
+            //We're gonna call those (height * width) / (sampleSize * sampleSize) times, might as well cache them since that number can be pretty big
+            //And I recall seeing in the profiler that GetIndexer() was kinda slow
+            var sampledFramesIndexers = sampledFrames.Select(s => s.GetIndexer()).ToList();
+
+            //We build small patches of sampleSize we clusterize each one of them, in order to pick only the frames where that patch didn't have any
+            //movement on it
             for (int x = 0; x < _size.Height; x += sampleSize)
             {
                 for (int y = 0; y < _size.Width; y += sampleSize)
@@ -444,6 +394,7 @@ namespace TennisHighlights
 
                         var resultMatIndexer = resultMat.GetIndexer();
 
+                        //Count the number of samples in each cluster
                         for (int p = 0; p < sampledFrames.Count; p++)
                         {
                             var label = resultMatIndexer[p, 0];
@@ -451,6 +402,7 @@ namespace TennisHighlights
                             clusterCounts[label]++;
                         }
 
+                        //We assume the biggest one is the background
                         var biggestClusterIndex = 0;
                         var biggestClusterSize = clusterCounts[0];
 
@@ -463,6 +415,7 @@ namespace TennisHighlights
                             }
                         }
 
+                        //We get one of the frames corresponding to that biggest cluster and assume it shows the background
                         for (int s = 0; s < sampledFrames.Count; s++)
                         {
                             if (resultMatIndexer[s, 0] == biggestClusterIndex)
@@ -479,8 +432,9 @@ namespace TennisHighlights
                     var minY = Math.Max(0, centerY - halfStep);
                     var maxY = Math.Min(_size.Width - 1, centerY + halfStep);
 
-                    var chosenFrameIndexer = sampledFrames[chosenFrameIndex].GetIndexer();
+                    var chosenFrameIndexer = sampledFramesIndexers[chosenFrameIndex];
 
+                    //We write that patch on the final image
                     for (int ii = minX; ii <= maxX; ii++)
                     {
                         for (int jj = minY; jj <= maxY; jj++)

@@ -345,7 +345,7 @@ namespace TennisHighlights.ImageProcessing
             _shouldUpdate = true;
 
             Logger.Log(LogType.Information, "\rFrame[Processed=" + FramesProcessed + ", Loaded=" + _frameExtractor.FramesLoaded
-                                                     + ", BG=" + _backgroundExtractor.LastBuiltBackground
+                                                     + ", BG=" + _backgroundExtractor.LastFrameWithBuiltBackground
                                                      + ", Disposed=" + _frameDisposer.LastDisposedFrame + "], Workers[Ball=" + freeWorkers
                                                      + ", Frame=" + _frameExtractor.FreeWorkers
                                                      + "], fps: " + Math.Round((double)LastAssignedFrame / _stopwatch.Elapsed.TotalSeconds, 2) + " ");
