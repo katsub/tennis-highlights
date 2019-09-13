@@ -1,5 +1,4 @@
 ﻿using System.Windows.Controls;
-using System.Windows.Threading;
 
 namespace TennisHighlightsGUI
 {
@@ -8,11 +7,6 @@ namespace TennisHighlightsGUI
     /// </summary>
     public partial class RallySelectionView : UserControl
     {
-        /// <summary>
-        /// The timer
-        /// </summary>
-        private readonly DispatcherTimer _timer;
-
         /// <summary>
         /// Gets the rally selection view model.
         /// </summary>

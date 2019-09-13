@@ -1,4 +1,7 @@
-﻿using System;
+﻿using OxyPlot;
+using OxyPlot.Axes;
+using OxyPlot.Series;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -63,7 +66,7 @@ namespace TennisHighlightsGUI
         /// <summary>
         /// Gets or sets the data of the Y axis.
         /// </summary>
-       /* public AxisData YAxisData
+        public AxisData YAxisData
         {
             get => _yAxisData;
             set
@@ -109,9 +112,7 @@ namespace TennisHighlightsGUI
                 _plotModel = value;
                 OnPropertyChanged();
             }
-        }/*
-
-
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RallyGraphViewModel"/> class.
@@ -120,9 +121,9 @@ namespace TennisHighlightsGUI
         {
             _rallyData = rallyData;
 
-            //RebuildPlot();
+            RebuildPlot();
         }
-        /*
+        
         /// <summary>
         /// Gets the rally value.
         /// </summary>
@@ -248,9 +249,9 @@ namespace TennisHighlightsGUI
         {
             var position = (sender as ScatterSeries).InverseTransform(e.Position);
 
-            var clickedRally = _rallyPoints.OrderBy(p => Math.Pow(p.x - position.X,2) + Math.Pow(p.y - position.Y, 2)).First();
+            var (x, y, rally) = _rallyPoints.OrderBy(p => Math.Pow(p.x - position.X,2) + Math.Pow(p.y - position.Y, 2)).First();
 
-            PointDetails = clickedRally.rally.ToString();
-        }*/
+            PointDetails = rally.ToString();
+        }
     }
 }

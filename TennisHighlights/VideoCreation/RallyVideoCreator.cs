@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using TennisHighlights.ImageProcessing;
+using TennisHighlights.Utils;
 
 namespace TennisHighlights.VideoCreation
 {
@@ -38,7 +39,7 @@ namespace TennisHighlights.VideoCreation
                 updateProgressInfo?.Invoke($"Trimming rallies... ({i}/{rallies.Count})", (int)Math.Round(percent), stopwatch.Elapsed.TotalSeconds);
 
                 //Stop if an error was found
-                var success = FFMPEGCaller.TrimRallyFromAnalysedFile(i, rally.Start / videoInfo.FrameRate, rally.Stop / videoInfo.FrameRate, settings.AnalysedVideoPath, out error, gotCanceled);
+                var success = FFmpegCaller.TrimRallyFromAnalysedFile(i, rally.Start / videoInfo.FrameRate, rally.Stop / videoInfo.FrameRate, settings.AnalysedVideoPath, out error, gotCanceled);
 
                 if (!success) { return; }
 
@@ -52,7 +53,7 @@ namespace TennisHighlights.VideoCreation
             var joinedFilePath = FileManager.GetUnusedFilePathInFolderFromFileName(settings.AnalysedVideoPath.Substring(0, settings.AnalysedVideoPath.Length - 4).ToString() + "_rallies.mp4",
                                                                                    FileManager.TempDataPath, ".mp4");
 
-            FFMPEGCaller.JoinAllRallyVideos(joinedFilePath, out error, gotCanceled);
+            FFmpegCaller.JoinAllRallyVideos(joinedFilePath, out error, gotCanceled);
 
             Process.Start("explorer.exe", FileManager.TempDataPath);
 

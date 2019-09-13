@@ -11,6 +11,7 @@ using System.Windows;
 using System.Windows.Controls;
 using TennisHighlights;
 using TennisHighlights.ImageProcessing;
+using TennisHighlights.Utils;
 using TennisHighlights.VideoCreation;
 
 namespace TennisHighlightsGUI
@@ -390,7 +391,7 @@ namespace TennisHighlightsGUI
                 {
                     rallyPath = saveFileDialog.FileName;
 
-                    FFMPEGCaller.TrimRallyFromAnalysedFile(rallyPath, rally.Start / videoInfo.FrameRate,
+                    FFmpegCaller.TrimRallyFromAnalysedFile(rallyPath, rally.Start / videoInfo.FrameRate,
                                                                       rally.Stop / videoInfo.FrameRate, settings.AnalysedVideoPath, out var error, () => RequestedCancel);
 
                     Process.Start("explorer.exe", FileManager.TempDataPath);

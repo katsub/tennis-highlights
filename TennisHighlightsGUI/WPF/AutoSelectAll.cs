@@ -28,7 +28,9 @@ namespace TennisHighlightsGUI.WPF
         {
             var ue = sender as FrameworkElement;
             if (ue == null)
+            {
                 return;
+            }
             //ue.Unloaded -= ue_Unloaded;
             ue.GotFocus -= ue_GotFocus;
             ue.GotMouseCapture -= ue_GotMouseCapture;

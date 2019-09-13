@@ -12,6 +12,7 @@ using System.Windows;
 using TennisHighlights;
 using TennisHighlights.ImageProcessing;
 using TennisHighlights.Rallies;
+using TennisHighlights.Utils;
 using TennisHighlights.VideoCreation;
 
 namespace TennisHighlightsGUI
@@ -149,9 +150,18 @@ namespace TennisHighlightsGUI
             #region Commands
             RegenerateRalliesCommand = new Command((param) =>
             {
-                RegenerateRallies();
+                var result = MessageBox.Show("This will restore all rallies to their original start-stop points from when they were extracted. Are you sure?", "Warning", MessageBoxButton.YesNo);
 
-                SwitchToRallySelectionView();
+                if (result == MessageBoxResult.Yes)
+                {
+                    var targetSize = Settings.General.GetTargetSize(VideoInfo);
+
+                    ResolutionDependentParameter.SetTargetResolutionHeight(targetSize.Height);
+
+                    RegenerateRallies();
+
+                    SwitchToRallySelectionView();
+                }
             });
 
             OpenRallyGraphCommand = new Command((param) =>
@@ -240,12 +250,6 @@ namespace TennisHighlightsGUI
             }
 
             Settings.Save();
-
-            if (Settings.General.RegenerateFrames)
-            {
-                ChosenFileLog.Balls.Clear();
-                ChosenFileLog.Rallies.Clear();
-            }
 
             var framesToProcess = Settings.General.GetFinalFrameToProcess(VideoInfo);
 
@@ -386,7 +390,7 @@ namespace TennisHighlightsGUI
                 }
             }
 
-            FFMPEGCaller.FFmpegPath = Settings.General.FFmpegPath;
+            FFmpegCaller.FFmpegPath = Settings.General.FFmpegPath;
         }
 
         /// <summary>

@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
 using TennisHighlights.ImageProcessing;
 
 namespace TennisHighlights.Moves
@@ -15,7 +14,7 @@ namespace TennisHighlights.Moves
         /// <summary>
         /// Below this speed, values are considered to be noisy and angles unprecise, so the algorithm should be less strict when picking points
         /// </summary>
-        public static ResolutionDependentParameter NoiseSquaredSpeed = new ResolutionDependentParameter(5d, 2d);
+        public static ResolutionDependentParameter NoiseSquaredSpeed { get; } = new ResolutionDependentParameter(5d, 2d);
         /// <summary>
         /// The maximum acceptable angle error for the next ball, in regards to the angle between the current ball and the previous ball
         /// </summary>
@@ -23,7 +22,7 @@ namespace TennisHighlights.Moves
         /// <summary>
         /// The ball interframe maximum square distance (max squared speed)
         /// </summary>
-        private static ResolutionDependentParameter _ballInterframeMaxSquareDistance = new ResolutionDependentParameter(900d, 2d);
+        private static readonly ResolutionDependentParameter _ballInterframeMaxSquareDistance = new ResolutionDependentParameter(900d, 2d);
         /// <summary>
         /// The minimum correlation for arc
         /// </summary>
@@ -36,7 +35,7 @@ namespace TennisHighlights.Moves
         /// The maximum speed relative delta. Must be big because we're dealing with squared speed, so 10 is only about 3.3x times faster (which may
         /// not be a lot when the ball starts falling faster due to gravity, needs testing)
         /// </summary>
-        private static ResolutionDependentParameter _maxSquaredSpeedRelativeDelta = new ResolutionDependentParameter(10d, 2d);
+        private static readonly ResolutionDependentParameter _maxSquaredSpeedRelativeDelta = new ResolutionDependentParameter(10d, 2d);
         /// <summary>
         /// The empty vector
         /// </summary>
@@ -44,14 +43,15 @@ namespace TennisHighlights.Moves
         /// <summary>
         /// The maximum squared speed mag
         /// </summary>
-        private static ResolutionDependentParameter _maxSquaredSpeedMag = new ResolutionDependentParameter(30d, 2d);
+        private static readonly ResolutionDependentParameter _maxSquaredSpeedMag = new ResolutionDependentParameter(30d, 2d);
         /// <summary>
         /// The maximum projection delta squared magnitude
         /// </summary>
-        private static ResolutionDependentParameter _maxProjectionDeltaSquaredMagnitude = new ResolutionDependentParameter(1500d, 2d);
+        private static readonly ResolutionDependentParameter _maxProjectionDeltaSquaredMagnitude = new ResolutionDependentParameter(1500d, 2d);
 
         /// <summary>
-        /// Gets the longest arc for frame.
+        /// Gets the longest arc for frame. Mostly used for debugging purposes to verify that the algorithm is able to build an arc using a ball from
+        /// a frame that we suspect to have an arc that should be included in a rally
         /// </summary>
         /// <param name="ballsPerFrame">The balls per frame.</param>
         /// <param name="frameKey">The frame key.</param>
@@ -82,13 +82,14 @@ namespace TennisHighlights.Moves
         /// <param name="ballIndex">Index of the ball.</param>
         public static Arc GetArc(Dictionary<int, List<Point>> ballsPerFrame, int frameKey, int ballIndex)
         {
-            var (momentum, maxDirection) = GetMaxMomentum(ballsPerFrame, frameKey, ballIndex);
+            var (correlation, maxDirection) = GetMaxCorrelation(ballsPerFrame, frameKey, ballIndex);
 
-            if (momentum > _minimumCorrelationForArc)
+            if (correlation > _minimumCorrelationForArc)
             {
                 var arc = new Arc();
 
-                arc.Balls.Add(frameKey, new ArcBallData(frameKey, ballIndex, ballsPerFrame[frameKey][ballIndex], maxDirection, maxDirection.SquaredLength(), momentum, 0d));
+                arc.Balls.Add(frameKey, new ArcBallData(frameKey, ballIndex, ballsPerFrame[frameKey][ballIndex], maxDirection, 
+                                                        maxDirection.SquaredLength(), correlation, 0d));
 
                 PropagateArc(arc, ballsPerFrame);
 
@@ -170,7 +171,7 @@ namespace TennisHighlights.Moves
             {
                 if (ballsPerFrame.TryGetValue(currentNextFrame, out var currentNextBalls))
                 {
-                    var nextBallMomentums = new List<(ArcBallData arcBallData, double angles)>();
+                    var nextBalls = new List<ArcBallData>();
 
                     var i = 0;
                     var distanceBetweenFrames = arcStartBall.FrameIndex - currentNextFrame;
@@ -196,15 +197,15 @@ namespace TennisHighlights.Moves
                                 || (vecAngles < 2 * _nextBallAngleError && speedSquaredMag < 2d * noiseSpeed)
                                 || (currentArcSize > 5 && speedSquaredMag < _maxSquaredSpeedMag.Value && (projectedPosition - ball).SquaredLength() < maxProjectionDeltaSquaredMagnitude))
                             {
-                                nextBallMomentums.Add((new ArcBallData(currentNextFrame, i, ball, backVector, speedSquaredMag, correlation, vecAngles), vecAngles));
+                                nextBalls.Add(new ArcBallData(currentNextFrame, i, ball, backVector, speedSquaredMag, correlation, vecAngles));
                             }
                         }
 
                         i++;
                     }
 
-                    double angles;
-                    (newArcBallData, angles) = nextBallMomentums.OrderBy(b => b.arcBallData.Correlation).FirstOrDefault();
+                    //Pick the ball most likely to be the successor of the current arc last (or first) ball
+                    newArcBallData = nextBalls.OrderBy(b => b.Correlation).FirstOrDefault();
 
                     if (newArcBallData != null) { break; }
                 }
@@ -223,18 +224,20 @@ namespace TennisHighlights.Moves
         }
 
         /// <summary>
-        /// Gets the maximum momentum.
+        /// Gets the maximum correlation.
         /// </summary>
         /// <param name="ballsPerFrame">The balls per frame.</param>
         /// <param name="frameKey">The frame key.</param>
         /// <param name="ballIndex">Index of the ball.</param>
-        public static (double momentum, Point maxDirection) GetMaxMomentum(Dictionary<int, List<Point>> ballsPerFrame, int frameKey, int ballIndex)
+        public static (double correlation, Point maxDirection) GetMaxCorrelation(Dictionary<int, List<Point>> ballsPerFrame, int frameKey, int ballIndex)
         {
             var ball = ballsPerFrame[frameKey][ballIndex];
 
             var maxCorrelation = double.NegativeInfinity;
             var maxDirection = _emptyVector;
 
+            //For the analysed ball, search for one ball before it and one ball after it that maximize its correlation value so we can determine if this
+            //ball is likely to be real and wield a real arc
             for (int i = 1; i < _maxArcInterruptionFrames; i++)
             {
                 if (ballsPerFrame.TryGetValue(frameKey - i, out var possibleBackBalls))
@@ -252,18 +255,12 @@ namespace TennisHighlights.Moves
 
                                     foreach (var forwardBall in possibleForwardBalls)
                                     {
-                                        //Precisa levar em conta a orientacao no momento coherence (se um aponta pra cima e o outro pra baixo, tem que somar 180 no ângulo)
                                         var forwardVector = forwardBall - ball;
-                                        //TODO: slow (uses vector lengths)
-                                        //var momentum = GetDotProduct(backVector, forwardVector, out var vecAngles) / (forwardVector.Length * backVector.Length);
-                                        //medida ruim: a medida tem que ser ângulo entre forward e back + mòdulo forward + mòdulo back. Se minimizar essa medida
-                                        //vai dar certo 
-                                        //TODO: tem bola repetida (mesma posiçao, nao deixar adicionar essas na hora da deteccao)
-                                        var momentum = GetVectorCorrelation(forwardVector, backVector, out var angles);
+                                        var correlation = GetVectorCorrelation(forwardVector, backVector, out var angles);
 
-                                        if (maxCorrelation < momentum)
+                                        if (maxCorrelation < correlation)
                                         {
-                                            maxCorrelation = Math.Max(momentum, maxCorrelation);
+                                            maxCorrelation = Math.Max(correlation, maxCorrelation);
                                             maxDirection = forwardVector;
                                         }
                                     }
@@ -278,35 +275,6 @@ namespace TennisHighlights.Moves
         }
 
         /// <summary>
-        /// Gets the arc confidence point.
-        /// </summary>
-        /// <param name="ballsPerFrame">The balls per frame.</param>
-        public static (int frame, int ballIndex, Point direction, double momentum, double speedMag) GetArcConfidencePoint(Dictionary<int, List<Point>> ballsPerFrame)
-        {
-            var ballMomentums = new Dictionary<(int frame, int ballIndex), (double momentum, Point direction)>();
-
-            foreach (var frame in ballsPerFrame)
-            {
-                for (int i = 0; i < frame.Value.Count; i++)
-                {
-                    var (momentum, speedMag) = GetMaxMomentum(ballsPerFrame, frame.Key, i);
-
-                    ballMomentums.Add((frame.Key, i), (momentum, speedMag));
-                }
-            }
-
-            if (ballMomentums.Count > 0)
-            {
-                var mostProbableBall = ballMomentums.OrderByDescending(m => m.Value.momentum).First();
-
-                return (mostProbableBall.Key.frame, mostProbableBall.Key.ballIndex, mostProbableBall.Value.direction, mostProbableBall.Value.momentum,
-                        mostProbableBall.Value.direction.SquaredLength());
-            }
-
-            return (-1, -1, _emptyVector, double.NaN, double.NaN);
-        }
-
-        /// <summary>
         /// Gets the vector correlation.
         /// </summary>
         /// <param name="vec1">The vec1.</param>
@@ -316,6 +284,10 @@ namespace TennisHighlights.Moves
         {
             vecAngles = Math.Abs(vec1.AngleBetween(vec2));
 
+            //Negative sign in the beginning so the best value is 0 : vecAngles = 0 means the two vectors are perfectly aligned, and their
+            //squared lengths are as small as possible. We want to discard combinations where vecAngles is big (sudden change of direction, which
+            //cannot happen in the midle of the trajectory (if a player hits the ball, it is the beginning of a new arc, not part of the current one))
+            //We also want to discard combinations of vectors with big lengths: this means the balls are too far and are likely to be unrelated
             return -(vecAngles + vec1.SquaredLength() + vec2.SquaredLength());
         }
     }

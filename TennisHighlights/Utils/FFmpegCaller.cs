@@ -4,14 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TennisHighlights.Utils;
 
-namespace TennisHighlights
+namespace TennisHighlights.Utils
 {
     /// <summary>
-    /// The FFMPEG caller
+    /// The FFmpeg caller
     /// </summary>
-    public static class FFMPEGCaller
+    public static class FFmpegCaller
     {
         /// <summary>
         /// The FFmpeg path
@@ -22,6 +21,7 @@ namespace TennisHighlights
         /// Calls FFMPEG with the specified arguments.
         /// </summary>
         /// <param name="arguments">The arguments.</param>
+        /// <param name="error">The error.</param>
         /// <param name="askedToStop">The asked to stop.</param>
         public static bool Call(string arguments, out string error, Func<bool> askedToStop = null)
         {
@@ -134,6 +134,7 @@ namespace TennisHighlights
 
             arguments += " -ss " + TimeSpan.FromSeconds(startSeconds);
             arguments += " -t " + TimeSpan.FromSeconds(stopSeconds - startSeconds);
+            //copyinkf is needed so the trimmed video won't be stuck because it was trimmed in section where there was no keyframe
             arguments += " -c:a copy -copyinkf " + fileName;
 
             return Call(arguments, out error, askedToStop);

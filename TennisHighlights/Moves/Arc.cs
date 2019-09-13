@@ -30,7 +30,7 @@ namespace TennisHighlights.Moves
         }
 
         /// <summary>
-        /// Gets the identifier.
+        /// Gets the identifier. 
         /// </summary>
         public int Id { get; } = GetId();
 

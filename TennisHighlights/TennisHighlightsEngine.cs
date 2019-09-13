@@ -12,18 +12,7 @@ namespace TennisHighlights
     /// The tennis highlights engine
     /// </summary>
     public class TennisHighlightsEngine
-    {
-        /// <summary>
-        /// Gets the rallies from balls.
-        /// </summary>
-        /// <param name="settings">The settings.</param>
-        /// <param name="ballsPerFrame">The balls per frame.</param>
-        /// <param name="processedFileLog">The processed file log.</param>
-        public static List<Rally> GetRalliesFromBalls(TennisHighlightsSettings settings, List<Point>[] ballsPerFrame, ProcessedFileLog processedFileLog)
-        {
-            return GetRalliesFromBalls(settings, ConvertBallsToDico(ballsPerFrame), processedFileLog);
-        }
-
+    {    
         /// <summary>
         /// Gets the rallies from balls.
         /// </summary>
@@ -122,12 +111,18 @@ namespace TennisHighlights
                     {
                         var candidateArc = ArcExtractor.GetArc(ballsPerFrame, s, t);
 
+                        if (candidateArc != null)
+                        {
+                            var a = false;
+                        }
+
                         if (candidateArc != null && CheckArcConsistency(candidateArc))
                         {
                             var isNewArc = true;
 
                             foreach (var ball in candidateArc.Balls)
                             {
+                                //Check if the arc doesn't coincide with one built having another ball as a starting point
                                 if (arcsPerBall.TryGetValue(ball.Key, out var thisFrameDict)
                                     && thisFrameDict.TryGetValue(ball.Value.BallIndex, out var existingBallArc)
                                     && existingBallArc.Balls.Count == candidateArc.Balls.Count

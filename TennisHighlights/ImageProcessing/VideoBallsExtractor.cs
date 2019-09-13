@@ -106,13 +106,10 @@ namespace TennisHighlights.ImageProcessing
             _checkIfCancelRequested = checkIfCancelRequested;
             _ballsPerFrame = new List<Accord.Point>[_videoInfo.TotalFrames];
 
-            var height = (int)Math.Round((double)Math.Min(videoInfo.Height, settings.General.FrameMaxHeight));
-            var width = (int)Math.Round(height * videoInfo.Width / (double)videoInfo.Height);
+            _targetSize = settings.General.GetTargetSize(_videoInfo);
 
-            ResolutionDependentParameter.SetTargetResolutionheight(height);
+            ResolutionDependentParameter.SetTargetResolutionHeight(_targetSize.Height);
             FrameBallExtractor.AllocateResolutionDependentMats();
-
-            _targetSize = new OpenCvSharp.Size(width, height);
 
             _timer = new Timer
             {

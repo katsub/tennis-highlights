@@ -29,7 +29,8 @@ namespace TennisHighlights.Moves
         /// </summary>
         public double SpeedSquaredMagnitude { get; }
         /// <summary>
-        /// Gets the correlation.
+        /// Gets the correlation: a measure that gets bigger the more a ball is aligned to the others around it and the closer it is to those balls
+        /// designed to suppress random noise since it'll most of the time not make a linear trajectory and can move very fast
         /// </summary>
         public double Correlation { get; }
         /// <summary>

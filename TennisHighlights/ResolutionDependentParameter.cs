@@ -39,7 +39,7 @@ namespace TennisHighlights
         /// Sets the target resolutionheight.
         /// </summary>
         /// <param name="targetResolutionHeight">Height of the target resolution.</param>
-        public static void SetTargetResolutionheight(double targetResolutionHeight) => _scaleFactor = targetResolutionHeight / _referenceResolutionHeight;
+        public static void SetTargetResolutionHeight(double targetResolutionHeight) => _scaleFactor = targetResolutionHeight / _referenceResolutionHeight;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ResolutionDependentParameter" /> class.

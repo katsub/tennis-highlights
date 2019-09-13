@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OpenCvSharp;
+using System;
 using System.IO;
 using System.Reflection;
 using System.Xml.Linq;
@@ -76,10 +77,6 @@ namespace TennisHighlights
         /// </summary>
         public bool DrawGizmos { get; }
         /// <summary>
-        /// Gets a value indicating whether [regenerate frames].
-        /// </summary>
-        public bool RegenerateFrames { get; }
-        /// <summary>
         /// Gets a value indicating whether [automatic join all].
         /// </summary>
         public bool AutoJoinAll { get; set; } = false;
@@ -137,7 +134,6 @@ namespace TennisHighlights
                         AnalysedVideoPath = "";
                     }
 
-                    RegenerateFrames = generalSettings.GetBoolElementValue(SettingsKeys.RegenerateFrames, false);
                     DrawGizmos = generalSettings.GetBoolElementValue(SettingsKeys.DrawGizmos, false);
                     FilterRalliesByDuration = generalSettings.GetBoolElementValue(SettingsKeys.FilterRalliesByDuration, true);
                     CustomStartMinute = generalSettings.GetIntElementValue(SettingsKeys.CustomStartMinute, 0);
@@ -161,7 +157,7 @@ namespace TennisHighlights
                         FFmpegPath = string.Empty;
                     }
                    
-                    FFMPEGCaller.FFmpegPath = FFmpegPath;
+                    FFmpegCaller.FFmpegPath = FFmpegPath;
                 }
             }
 
@@ -179,7 +175,6 @@ namespace TennisHighlights
             var xElement = new XElement(SettingsKeys.GeneralSettings);
 
             xElement.AddElementWithValue(SettingsKeys.AnalysedVideoPath, AnalysedVideoPath);
-            xElement.AddElementWithValue(SettingsKeys.RegenerateFrames, RegenerateFrames);
             xElement.AddElementWithValue(SettingsKeys.DrawGizmos, DrawGizmos);
             xElement.AddElementWithValue(SettingsKeys.TempDataPath, TempDataPath);
             xElement.AddElementWithValue(SettingsKeys.FilterRalliesByDuration, FilterRalliesByDuration);
@@ -210,6 +205,18 @@ namespace TennisHighlights
         /// <param name="info">The information.</param>
         public int GetFinalFrameToProcess(VideoInfo info) => UseCustomStopFrame ? Math.Min((int)(CustomStopMinute * 60 * info.FrameRate), info.TotalFrames)
                                                                                 : info.TotalFrames;
+
+        /// <summary>
+        /// Gets the size of the target.
+        /// </summary>
+        /// <param name="info">The information.</param>
+        public Size GetTargetSize(VideoInfo info)
+        {
+            var height = (int)Math.Round((double)Math.Min(info.Height, FrameMaxHeight));
+            var width = (int)Math.Round(height * info.Width / (double)info.Height);
+
+            return new Size(width, height);
+        }
     }
 
     /// <summary>
@@ -245,10 +252,19 @@ namespace TennisHighlights
     /// </summary>
     public class BallDetectionSettings
     {
+        /// <summary>
+        /// Gets the minimum brightness for a pixel to appear in the binary frames
+        /// </summary>
         public int MinBrightness { get; } = 30;
+        /// <summary>
+        /// Gets the minimum player area for a blob to be considered a player
+        /// </summary>
         public ResolutionDependentParameter MinPlayerArea { get; } = new ResolutionDependentParameter(1050, 2d);
     }
 
+    /// <summary>
+    /// The background extraction settings
+    /// </summary>
     public class BackgroundExtractionSettings
     {
         //WARNING: the algorithm uses a stackalloc of NumberOfSamples * ClusteringSize * ClusteringSize * 3 of floats, so these values must not
@@ -302,7 +318,7 @@ namespace TennisHighlights
         /// <summary>
         /// The document
         /// </summary>
-        private XDocument _document;
+        private readonly XDocument _document;
         /// <summary>
         /// The document path
         /// </summary>

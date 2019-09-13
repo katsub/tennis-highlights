@@ -76,19 +76,17 @@ namespace TennisHighlights
             {
                 Logger.Log(LogType.Information, "Cleaning folders...");
 
-                if (_settings.RegenerateFrames)
-                {
-                    CleanFolder(FrameFolder);
-                }
-
                 CleanFolder(RallyFolder);
-                //CleanFolder(RallyVideosFolder);
 
                 Logger.Log(LogType.Information, "Cleaned.");
             }
             catch { }
         }
 
+        /// <summary>
+        /// Deletes the folder.
+        /// </summary>
+        /// <param name="folderName">Name of the folder.</param>
         public static void DeleteFolder(string folderName)
         {
             try
@@ -100,6 +98,12 @@ namespace TennisHighlights
             catch { }
         }
 
+        /// <summary>
+        /// Gets the name of the unused file path in folder from file.
+        /// </summary>
+        /// <param name="filePath">The file path.</param>
+        /// <param name="folder">The folder.</param>
+        /// <param name="newExtension">The new extension.</param>
         public static string GetUnusedFilePathInFolderFromFileName(string filePath, string folder, string newExtension)
         {
             if (!folder.EndsWith("//"))

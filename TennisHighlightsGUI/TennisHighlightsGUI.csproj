@@ -12,6 +12,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="OxyPlot.Core" Version="1.0.0" />
+    <PackageReference Include="OxyPlot.Wpf" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\InWit.WPF.MultiRangeSlider\InWit.WPF.MultiRangeSlider.csproj" />
     <ProjectReference Include="..\TennisHighlights\TennisHighlights.csproj" />
   </ItemGroup>
