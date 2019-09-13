@@ -239,13 +239,15 @@ namespace TennisHighlights.ImageProcessing
                 _ballsPerFrame[ball.Key] = ball.Value;
             }
 
-            lastParsedFrame = _processedFileLog.Balls.LastOrDefault().Key;
+            var lastFrame = _settings.General.GetFinalFrameToProcess(_videoInfo);
 
             //If all frames have already been parsed, return the results
-            if (lastParsedFrame >= _videoInfo.TotalFrames)
+            if (_processedFileLog.LastParsedFrame >= lastFrame)
             {
                 return GetBallsPerFrameDictionary();
             }
+
+            var i = 0;
 
             using (_frameExtractor = new VideoFrameExtractor(_settings.General.AnalysedVideoPath, _targetSize, _videoInfo))
             {
@@ -254,7 +256,6 @@ namespace TennisHighlights.ImageProcessing
                 var previousMat = await _frameExtractor.GetFrameAsync(0);
 
                 var initialFrame = _settings.General.GetFirstFrameToProcess(_videoInfo);
-                var lastFrame = _settings.General.GetFinalFrameToProcess(_videoInfo);
 
                 using (_backgroundExtractor = new BackgroundExtractor(_frameExtractor, _targetSize, initialFrame, _settings.BackgroundExtraction, _videoInfo,
                                                                       lastParsedFrame, lastFrame))
@@ -264,8 +265,6 @@ namespace TennisHighlights.ImageProcessing
                     using (_frameDisposer = new FrameDisposer(this, _ballExtractors, _backgroundExtractor, _frameExtractor))
                     {
                         _frameDisposer.DisposeFramesInBackgroundTask();
-
-                        int i = 0;
 
                         _timer.Elapsed += Timer_Elapsed;
 
@@ -327,6 +326,8 @@ namespace TennisHighlights.ImageProcessing
                 }
             }
 
+            if (i > _processedFileLog.LastParsedFrame) { _processedFileLog.LastParsedFrame = i; }
+
             SerializeBalls();
             //Needs to be serialized then deserialized so we have a file that yields exactly the same results we're gonna have in that call
             _processedFileLog.ReloadBallsFromSerialization();
@@ -371,6 +372,10 @@ namespace TennisHighlights.ImageProcessing
                     _processedFileLog.Balls.Add(index, _ballsPerFrame[index]);
                 }
             }
+
+            var lastKey = _processedFileLog.Balls.Last().Key;
+            
+            if (lastKey > _processedFileLog.LastParsedFrame) { _processedFileLog.LastParsedFrame = lastKey; }
 
             _processedFileLog.Save();
         }

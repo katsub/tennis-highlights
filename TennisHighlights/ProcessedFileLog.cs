@@ -20,6 +20,7 @@ namespace TennisHighlights
         public const string RallyLog = "RallyLog";
         public const string Rally = "Rally";
         public const string Signature = "Signature";
+        public const string LastParsedFrame = "LastParsedFrame";
     }
 
     /// <summary>
@@ -53,6 +54,11 @@ namespace TennisHighlights
         /// Gets the signature.
         /// </summary>
         public string Signature { get; }
+
+        /// <summary>
+        /// Gets or sets the last parsed frame.
+        /// </summary>
+        public int LastParsedFrame { get; set; }
 
         /// <summary>
         /// Gets the balls.
@@ -119,6 +125,8 @@ namespace TennisHighlights
 
                 if (ballLog != null)
                 {
+                    LastParsedFrame = ballLog.GetIntAttribute(LogKeys.LastParsedFrame, 0);
+
                     Balls = FrameDataSerializer.ParseBallLog(ballLog.Value);
                 }
 
@@ -226,7 +234,8 @@ namespace TennisHighlights
             xFileInfo.AddElementWithValue(LogKeys.ModifiedDate, _modifiedDate);
             xFileInfo.AddElementWithValue(LogKeys.Signature, Signature);
 
-            var xBallLog = new XElement(LogKeys.BallLog, FrameDataSerializer.SerializeBallsPerFrameIntoString(Balls));
+            var xBallLog = new XElement(LogKeys.BallLog, FrameDataSerializer.SerializeBallsPerFrameIntoString(Balls), 
+                                                         new XAttribute(LogKeys.LastParsedFrame, LastParsedFrame));
             var xRallyLog = new XElement(LogKeys.RallyLog);
 
             foreach (var rally in Rallies)

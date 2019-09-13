@@ -18,7 +18,7 @@ namespace TennisHighlights.Utils
         public static string FFmpegPath { get; set; }
 
         /// <summary>
-        /// Calls FFMPEG with the specified arguments.
+        /// Calls FFmpeg with the specified arguments.
         /// </summary>
         /// <param name="arguments">The arguments.</param>
         /// <param name="error">The error.</param>
@@ -40,7 +40,7 @@ namespace TennisHighlights.Utils
 
                 if (!proc.Start())
                 {
-                    Logger.Log(LogType.Error, "Could not start FFMPEG.");
+                    Logger.Log(LogType.Error, "Could not start FFmpeg.");
                     return false;
                 }
 
