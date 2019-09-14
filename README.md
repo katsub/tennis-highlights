@@ -29,7 +29,17 @@ You'll also need the FFmpeg executable in order to export the videos, you can do
     - Untick the "Stop at X minutes" checkbox, so the entire video will be converted
     - Untick the "Auto join all and export", so you can edit the rallies and pick which ones you want to keep
   
+  *Rally Selection View*
   
+  The right column contains a list of all rallies extracted and their durations. All checked rallies on that list will be kept on the exported video. 
+  The left pane shows the selected rally on the list. It can be edited by dragging the left and right sliders which correspond to the start and end of that rally.
+  There are a couple of buttons:
+  - Export: exports the selected rally to a separate video
+  - Split: splits the selected rally at the current play position
+  - Join: joins the selected rally with the next one on the list
+  - Increase/Decrease speed: increases or decreases the speed of the viewed rally (this won't change the speed of the exported video)
+  
+  Once you're done selecting the rallies, you can click on the "Join selected rallies" button so the final video is exported
 
 # Building
 
