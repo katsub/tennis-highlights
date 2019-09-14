@@ -158,9 +158,22 @@ namespace TennisHighlightsGUI
 
                     ResolutionDependentParameter.SetTargetResolutionHeight(targetSize.Height);
 
-                    RegenerateRallies();
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            IsConverting = true;
 
-                    SwitchToRallySelectionView();
+                            RegenerateRallies();
+
+                            OnRalliesReady();
+                        }
+                        finally
+                        {
+                            IsConverting = false;
+                            CancelRequestHandled();
+                        }
+                    });
                 }
             });
 
@@ -251,32 +264,36 @@ namespace TennisHighlightsGUI
 
             Settings.Save();
 
-            var framesToProcess = Settings.General.GetFinalFrameToProcess(VideoInfo);
+            //Begin conversion
+            var stopwatch = new Stopwatch();
 
-            //Indices start at 0, so we must subtract 1 from the frames count to have the correct index
-            if (ChosenFileLog.Balls.LastOrDefault().Key >= framesToProcess - 1)
+            stopwatch.Start();
+
+            Task.Run(() =>
             {
-                if (!ChosenFileLog.Rallies.Any())
+                try
                 {
-                    RegenerateRallies();
-                }
+                    var framesToProcess = Settings.General.GetFinalFrameToProcess(VideoInfo);
 
-                SendProgressInfo("Parsed from cache", 100, 0d);
-                SwitchToRallySelectionView();
+                    void rallyProgressUpdateAction(int currentRally, int currentBallFrame)
+                    {
+                        var percent = 100d * (double)currentBallFrame / framesToProcess;
 
-                IsConverting = false;
-                CancelRequestHandled();
-            }
-            else
-            {
-                //Begin conversion
-                var stopwatch = new Stopwatch();
+                        SendProgressInfo(new ProgressInfo(null, (int)Math.Round(percent), "Built rally " + currentRally + "...", 0d));
+                    }
 
-                stopwatch.Start();
-
-                Task.Run(() =>
-                {
-                    try
+                    if (Settings.General.GetFinalFrameToProcess(VideoInfo) <= ChosenFileLog.LastParsedFrame)
+                    {
+                        if (!ChosenFileLog.Rallies.Any())
+                        {
+                            RegenerateRallies();
+                        }
+                        else
+                        {
+                            SendProgressInfo("Parsed from cache.", 100, 0d);
+                        }
+                    }
+                    else
                     {
                         void progressUpdateAction(Bitmap bitmap, int processedFrame)
                         {
@@ -296,47 +313,66 @@ namespace TennisHighlightsGUI
 
                         if (!RequestedCancel)
                         {
-                            RegenerateRallies();
+                            RegenerateRallies(stopwatch.Elapsed.TotalSeconds);
                         }
+                    }
 
-                        if (!RequestedCancel)
+                    if (!RequestedCancel)
+                    {
+                        if (ChosenFileLog.Rallies.Count > 0)
                         {
-                            if (ChosenFileLog.Rallies.Count > 0)
-                            {
-                                if (Settings.General.AutoJoinAll)
-                                {
-                                    foreach (var rally in ChosenFileLog.Rallies)
-                                    {
-                                        rally.IsSelected = true;
-                                    }
-
-                                    RallyVideoCreator.BuildVideoWithAllRallies(ChosenFileLog.Clone().Rallies,
-                                                                               VideoInfo, Settings.General, out var error, SendProgressInfo, () => RequestedCancel);
-                                }
-                                else
-                                {
-                                    SwitchToRallySelectionView();
-                                }
-                            }
-                            else
-                            {
-                                MessageBox.Show("No rallies were found in video.", "Error");
-                            }
+                            OnRalliesReady();
                         }
+                        else
+                        {
+                            MessageBox.Show("No rallies were found in video.", "Error");
+                        }
+                    }
 
-                        SendProgressInfo(new ProgressInfo(null, RequestedCancel ? 0 : 100, RequestedCancel ? "Canceled" : "Done", 0d));
-                    }
-                    catch (Exception e)
+                    SendProgressInfo(new ProgressInfo(null, RequestedCancel ? 0 : 100, RequestedCancel ? "Canceled" : "Done", 0d));
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show("An error has been encountered in the conversion:\n\n" + e.ToString());
+                }
+                finally
+                {
+                    IsConverting = false;
+                    CancelRequestHandled();
+                    OnPropertyChanged(nameof(CanRegenerateRallies));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Called when [rallies ready].
+        /// </summary>
+        private void OnRalliesReady()
+        {
+            if (Settings.General.AutoJoinAll)
+            {
+                foreach (var rally in ChosenFileLog.Rallies)
+                {
+                    rally.IsSelected = true;
+                }
+
+                RallyVideoCreator.BuildVideoWithAllRallies(ChosenFileLog.Clone().Rallies,
+                                                           VideoInfo, Settings.General, out var error, SendProgressInfo, () => RequestedCancel);
+            }
+            else
+            {
+                //Switches to the rally selection view
+                new Action(() =>
+                {
+                    if (_rallySelectionViewModel == null)
                     {
-                        MessageBox.Show("An error has been encountered in the conversion:\n\n" + e.ToString());
+                        _rallySelectionViewModel = new RallySelectionViewModel(this);
                     }
-                    finally
-                    {
-                        IsConverting = false;
-                        CancelRequestHandled();
-                        OnPropertyChanged(nameof(CanRegenerateRallies));
-                    }
-                });
+
+                    _rallySelectionViewModel.InitializeVideoParameters();
+
+                    Switcher.Switch(new RallySelectionView(_rallySelectionViewModel));
+                }).ExecuteOnUIThread();
             }
         }
 
@@ -396,11 +432,24 @@ namespace TennisHighlightsGUI
         /// <summary>
         /// Regenerates the rallies.
         /// </summary>
+        /// <param name="elapsedTime">The elapsed time.</param>
         /// <exception cref="NotImplementedException"></exception>
-        public void RegenerateRallies()
+        public void RegenerateRallies(double elapsedTime = 0d)
         {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+            void rallyProgressUpdateAction(int currentRally, int currentBallFrame)
+            {
+                var percent = 100d * (double)currentBallFrame / ChosenFileLog.Balls.Count;
+
+                SendProgressInfo(new ProgressInfo(null, (int)Math.Round(percent), "Built rally " + currentRally + "...", 0d));
+            }
+
+            bool cancelRequested() => RequestedCancel;
+
             var clusterSize = 5;
-            var rallies = TennisHighlightsEngine.GetRalliesFromBalls(Settings, ChosenFileLog.Balls, ChosenFileLog);
+            var rallies = TennisHighlightsEngine.GetRalliesFromBalls(Settings, ChosenFileLog.Balls, ChosenFileLog, rallyProgressUpdateAction, cancelRequested);
 
             if (rallies.Count > clusterSize)
             {
@@ -428,24 +477,8 @@ namespace TennisHighlightsGUI
                 ChosenFileLog.Rallies.Add(new RallyEditData(i.ToString()) { Start = rallyStart, Stop = rallyEnd });
                 i++;
             }
-        }
 
-        /// <summary>
-        /// Switches to rally selection view.
-        /// </summary>
-        private void SwitchToRallySelectionView()
-        {
-            new Action(() =>
-            {
-                if (_rallySelectionViewModel == null)
-                {
-                    _rallySelectionViewModel = new RallySelectionViewModel(this);
-                }
-
-                _rallySelectionViewModel.InitializeVideoParameters();
-
-                Switcher.Switch(new RallySelectionView(_rallySelectionViewModel));
-            }).ExecuteOnUIThread();
+            SendProgressInfo("Built rally " + rallies.Count, 100, elapsedTime + stopwatch.Elapsed.TotalSeconds);
         }
 
         /// <summary>

@@ -130,7 +130,7 @@ namespace TennisHighlights.Moves
         private static void PropagateBall(bool propagateForward, Arc arc, Dictionary<int, List<Point>> ballsPerFrame)
         {
             var foundNewBall = true;
-            var currentStartBall = propagateForward ? arc.Balls.Last().Value : arc.Balls.First().Value;
+            var currentStartBall = propagateForward ? arc.Balls.Values[arc.Balls.Count - 1] : arc.Balls.Values[0];
 
             while (foundNewBall)
             {

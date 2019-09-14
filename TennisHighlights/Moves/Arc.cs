@@ -37,17 +37,23 @@ namespace TennisHighlights.Moves
         /// <summary>
         /// Gets the balls.
         /// </summary>
-        public SortedList<int, ArcBallData> Balls { get; } = new SortedList<int, ArcBallData>();
+        public SortedList<int, ArcBallData> Balls { get; }
 
         /// <summary>
         /// Gets the range.
         /// </summary>
-        public int Range => Balls.Last().Key - Balls.First().Key;
+        public int Range => Balls.Values[Balls.Count - 1].FrameIndex - Balls.Values[0].FrameIndex;
 
         /// <summary>
         /// Gets or sets the stats.
         /// </summary>
         public ArcStats Stats { get; private set; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Arc"/> class.
+        /// </summary>
+        /// <param name="capacity">The capacity.</param>
+        public Arc (int capacity = 1) => Balls = new SortedList<int, ArcBallData>(capacity);
 
         /// <summary>
         /// Builds the arc stats.
@@ -82,7 +88,8 @@ namespace TennisHighlights.Moves
         /// </summary>
         /// <param name="arc1">The arc1.</param>
         /// <param name="arc2">The arc2.</param>
-        public int GetCombinedRange(Arc otherArc) => otherArc.Balls.Last().Key - Balls.First().Key;
+        public int GetCombinedRange(Arc otherArc) => otherArc.Balls.Values[otherArc.Balls.Count - 1].FrameIndex 
+                                                     - Balls.Values[0].FrameIndex;
 
         /// <summary>
         /// Determines whether [is similar arc] [the specified other arc].
@@ -90,12 +97,11 @@ namespace TennisHighlights.Moves
         /// <param name="otherArc">The other arc.</param>
         public bool IsSimilarArc(Arc otherArc)
         {
-            if (Balls.Count != otherArc.Balls.Count) { return false; }
+            if (Balls.Values[0].FrameIndex != otherArc.Balls.Values[0].FrameIndex || Range != otherArc.Range) { return false; }
 
-            if (Range != otherArc.Range) { return false; }
-
-            if ((Balls.First().Value.Position - otherArc.Balls.First().Value.Position).SquaredLength() > _similarPointsDistance.Value
-                || (Balls.Last().Value.Position - otherArc.Balls.Last().Value.Position).SquaredLength() > _similarPointsDistance.Value)
+            if ((Balls.Values[0].Position - otherArc.Balls.Values[0].Position).SquaredLength() > _similarPointsDistance.Value
+                || (Balls.Values[Balls.Count - 1].Position 
+                    - otherArc.Balls.Values[otherArc.Balls.Count - 1].Position).SquaredLength() > _similarPointsDistance.Value)
             { return false; }
 
             return true;

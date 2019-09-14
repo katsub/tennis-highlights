@@ -58,12 +58,20 @@ namespace TennisHighlights.Rallies
         /// <summary>
         /// Gets the last ball.
         /// </summary>
-        public ArcBallData LastBall => Arcs.Last().Balls.Last().Value;
+        public ArcBallData LastBall
+        {
+            get
+            {
+                var lastArcIndex = Arcs.Count - 1;
+
+                return Arcs[lastArcIndex].Balls.Values[Arcs[lastArcIndex].Balls.Count - 1];
+            }
+        }
 
         /// <summary>
         /// Gets the first ball.
         /// </summary>
-        public ArcBallData FirstBall => Arcs.First().Balls.First().Value;
+        public ArcBallData FirstBall => Arcs[0].Balls.Values[0];
 
         /// <summary>
         /// Gets the ball total travel distance.

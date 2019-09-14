@@ -50,7 +50,10 @@ namespace TennisHighlights.Rallies
         /// Builds the rallies.
         /// </summary>
         /// <param name="arcsPerFrame">The arcs per frame.</param>
-        public List<Rally> BuildRallies(Dictionary<int, Dictionary<int, Arc>> arcsPerFrame)
+        /// <param name="rallyProgressUpdateInfo">The rally progress update information.</param>
+        /// <param name="wasCancelRequested">The was cancel requested.</param>
+        public List<Rally> BuildRallies(Dictionary<int, Dictionary<int, Arc>> arcsPerFrame, Action<int, int> rallyProgressUpdateInfo = null,
+                                        Func<bool> wasCancelRequested = null)
         {
             var cameraTol = _outsideTheCameraTolerance.Value;
             var minTravelDistance = _minTravelDistance.Value;
@@ -83,19 +86,29 @@ namespace TennisHighlights.Rallies
 
                     var newArcAdded = true;
 
+                    var cancelled = false;
+
                     while (newArcAdded)
                     {
                         newArcAdded = ExtendRally(rally, arcsPerFrame);
+
+                        if (wasCancelRequested?.Invoke() == true) { cancelled = true; }
+
+                        if (cancelled) { break; }
                     }
+
+                    if (cancelled) { break; }
 
                     if (rally.Arcs.Count > 1 && rally.DurationInFrames > _minRallyFrames && rally.GetBallTotalTravelDistance() > minTravelDistance)
                     {
-                        endOfLastRallyAdded = rally.Arcs.Last().Balls.Last().Key;
+                        endOfLastRallyAdded = rally.LastBall.FrameIndex;
 
                         //If nobody plays for a long time, noise can form random slow rallies
                         if (rally.Arcs.Any(a => a.Stats.AverageSpeed > 2d * noiseSquaredSpeed))
                         {
                             rallies.Add(rally);
+
+                            rallyProgressUpdateInfo?.Invoke(rallies.Count, rally.FirstBall.FrameIndex);
                         }
 
                         break;
@@ -113,7 +126,7 @@ namespace TennisHighlights.Rallies
         /// <param name="arcsPerFrame">The arcs per frame.</param>
         private bool ExtendRally(Rally rally, Dictionary<int, Dictionary<int, Arc>> arcsPerFrame)
         {
-            var lastArc = rally.Arcs.Last();
+            var lastArc = rally.Arcs[rally.Arcs.Count - 1];
 
             var candidateConnection = GetNextArcInRally(lastArc, arcsPerFrame);
 
@@ -205,7 +218,6 @@ namespace TennisHighlights.Rallies
         /// <param name="candidateArcConnections">The candidate arc connections.</param>
         private bool CombineCandidateArcConnections(List<CandidateArcConnection> candidateArcConnections)
         {
-            //TODO: could be faster, contains() would be really useful, but test first to see if it's slow
             var candidatesToRemove = new List<CandidateArcConnection>();
             var candidatesToAdd = new List<CandidateArcConnection>();
 
@@ -224,7 +236,7 @@ namespace TennisHighlights.Rallies
                         {
                             if (TestArcConnection(firstArc, secondArc, i, out var candidate2DiscardedBalls))
                             {
-                                var combinedArc = new Arc();
+                                var combinedArc = new Arc(firstArc.Balls.Count - i + secondArc.Balls.Count - candidate2DiscardedBalls);
 
                                 foreach (var ball in firstArc.Balls.Take(firstArc.Balls.Count - i))
                                 {

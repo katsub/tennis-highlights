@@ -13,6 +13,10 @@ namespace TennisHighlights.Utils
     public static class FFmpegCaller
     {
         /// <summary>
+        /// Gets or sets the settings.
+        /// </summary>
+        public static GeneralSettings Settings { get; set; }
+        /// <summary>
         /// The FFmpeg path
         /// </summary>
         public static string FFmpegPath { get; set; }
@@ -48,7 +52,7 @@ namespace TennisHighlights.Utils
                 string line;
                 while ((line = reader.ReadLine()) != null)
                 {
-                    Console.WriteLine(line);
+                    Logger.Log(LogType.Error, line);
                 }
 
                 proc.Close();
@@ -82,6 +86,19 @@ namespace TennisHighlights.Utils
 
                 while (!hasExited)
                 {
+                    var reader = proc.StandardOutput;
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        Logger.Log(LogType.Information, line);
+                    }
+
+                    reader = proc.StandardError;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        Logger.Log(LogType.Error, line);
+                    }
+
                     if (askedToStop?.Invoke() == true)
                     {
                         proc.Kill();
@@ -134,8 +151,12 @@ namespace TennisHighlights.Utils
 
             arguments += " -ss " + TimeSpan.FromSeconds(startSeconds);
             arguments += " -t " + TimeSpan.FromSeconds(stopSeconds - startSeconds);
+
             //copyinkf is needed so the trimmed video won't be stuck because it was trimmed in section where there was no keyframe
-            arguments += " -c:a copy -copyinkf " + fileName;
+            var copyingMethod = Settings.CopyNonKeyframes ? " -c:a copy -copyinkf "
+                                                          : " -c:v copy -c:a copy ";
+
+            arguments += copyingMethod + fileName;
 
             return Call(arguments, out error, askedToStop);
         }
@@ -157,9 +178,14 @@ namespace TennisHighlights.Utils
                 ralliesPaths.AppendLine("file '" + rally + "'");
             }
 
+            var limitBitrateConfig = Settings.LimitMaxVideoBitrate && Settings.MaxVideoBitrate > 0 ? " -b:v " + Settings.MaxVideoBitrate + "M"
+                                                                                                   : string.Empty;
+
+            var videoCodec = string.IsNullOrEmpty(limitBitrateConfig) ? " -c:v copy " : limitBitrateConfig;
+
             File.WriteAllText(rallyFilePath, ralliesPaths.ToString());
 
-            var arguments = "-f concat -safe 0 -i " + rallyFilePath + " -c copy " + resultFilePath;
+            var arguments = "-f concat -safe 0 -i " + rallyFilePath + videoCodec + " -c:a copy " + resultFilePath;
 
             Call(arguments, out error, askedToStop);
         }

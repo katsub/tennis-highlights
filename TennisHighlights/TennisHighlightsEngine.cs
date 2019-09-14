@@ -1,4 +1,5 @@
 ﻿using Accord;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -12,22 +13,26 @@ namespace TennisHighlights
     /// The tennis highlights engine
     /// </summary>
     public class TennisHighlightsEngine
-    {    
+    {
         /// <summary>
         /// Gets the rallies from balls.
         /// </summary>
         /// <param name="settings">The settings.</param>
         /// <param name="ballsPerFrame">The balls per frame.</param>
         /// <param name="processedFileLog">The processed file log.</param>
-        /// <returns></returns>
-        public static List<Rally> GetRalliesFromBalls(TennisHighlightsSettings settings, Dictionary<int, List<Point>> ballsPerFrame, ProcessedFileLog processedFileLog)
+        /// <param name="rallyProgressUpdateInfo">The rally progress update information.</param>
+        /// <param name="wasCancelRequested">The was cancel requested.</param>
+        public static List<Rally> GetRalliesFromBalls(TennisHighlightsSettings settings, Dictionary<int, List<Point>> ballsPerFrame,
+                                                      ProcessedFileLog processedFileLog, Action<int, int> rallyProgressUpdateInfo = null,
+                                                      Func<bool> wasCancelRequested = null)
         {
             var arcsPerFrame = GetArcsPerFrame(ballsPerFrame);
 
             //We assume the video aspect ratio to be 1.78 and the analysed height to be the same from when the balls were calculated
             return BuildRallies(settings.RallyBuildingSettings, arcsPerFrame,
                                 new System.Drawing.Size((int)1.78d * settings.General.FrameMaxHeight,
-                                                        settings.General.FrameMaxHeight));
+                                                        settings.General.FrameMaxHeight),
+                                rallyProgressUpdateInfo, wasCancelRequested);
 
         }
 
@@ -36,12 +41,16 @@ namespace TennisHighlights
         /// </summary>
         /// <param name="settings">The settings.</param>
         /// <param name="arcsPerFrame">The arcs per frame.</param>
-        /// <param name="videoInfo">The video information.</param>
-        private static List<Rally> BuildRallies(RallyBuildingSettings settings, Dictionary<int, Dictionary<int, Arc>> arcsPerFrame, System.Drawing.Size targetSize)
+        /// <param name="targetSize">Size of the target.</param>
+        /// <param name="rallyProgressUpdateInfo">The rally progress update information.</param>
+        /// <param name="wasCancelRequested">The was cancel requested.</param>
+        private static List<Rally> BuildRallies(RallyBuildingSettings settings, Dictionary<int, Dictionary<int, Arc>> arcsPerFrame, 
+                                                System.Drawing.Size targetSize, Action<int, int> rallyProgressUpdateInfo = null,
+                                                Func<bool> wasCancelRequested = null)
         {
             var rallyBuilder = new RallyBuilder(settings, targetSize);
 
-            var rallies = rallyBuilder.BuildRallies(arcsPerFrame);
+            var rallies = rallyBuilder.BuildRallies(arcsPerFrame, rallyProgressUpdateInfo, wasCancelRequested);
 
             return rallies;
         }
@@ -76,9 +85,15 @@ namespace TennisHighlights
             //Validate the arc if it or one of its subsets satisfies the criteria
             bool isSubArcConsistant(IEnumerable<ArcBallData> balls)
             {
-                return balls.Count() > 3
-                       && (balls.First().Position - balls.Last().Position).SquaredLength() > 1000
-                       && (((double)balls.Count()) / (balls.Last().FrameIndex - balls.First().FrameIndex)) > 0.5d;
+                var numberOfBalls = balls.Count();
+
+                if (numberOfBalls <= 3) { return false; }
+
+                var firstBall = balls.First();
+                var lastBall = balls.Last();
+
+                return (firstBall.Position - lastBall.Position).SquaredLength() > 1000
+                       && (((double)numberOfBalls) / (lastBall.FrameIndex - firstBall.FrameIndex)) > 0.5d;
             }
 
             for (int i = 0; i < arc.Balls.Count; i++)

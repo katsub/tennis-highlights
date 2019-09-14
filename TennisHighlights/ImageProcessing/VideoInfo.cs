@@ -35,7 +35,7 @@ namespace TennisHighlights.ImageProcessing
                 FrameRate = video.Fps;
 
                 TotalFrames = video.FrameCount;
-
+            
                 Width = video.FrameWidth;
                 Height = video.FrameHeight;
             }

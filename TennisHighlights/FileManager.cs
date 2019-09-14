@@ -106,11 +106,6 @@ namespace TennisHighlights
         /// <param name="newExtension">The new extension.</param>
         public static string GetUnusedFilePathInFolderFromFileName(string filePath, string folder, string newExtension)
         {
-            if (!folder.EndsWith("//"))
-            {
-                folder += "//";
-            }
-
             var i = 0;
 
             var fileName = new FileInfo(filePath).Name;

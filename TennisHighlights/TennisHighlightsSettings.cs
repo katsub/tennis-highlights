@@ -37,6 +37,9 @@ namespace TennisHighlights
         public const string BallExtractionWorkers = "BallExtractionWorkers";
         public const string FrameMaxHeight = "FrameMaxHeight";
         public const string FrameExtractionWorkers = "FrameExtractionWorkers";
+        public const string CopyNonKeyframes = "CopyNonKeyframes";
+        public const string MaxVideoBitrate = "MaxVideoBitrate";
+        public const string LimitMaxVideoBitrate = "LimitMaxVideoBitrate";
     }
 
     /// <summary>
@@ -44,6 +47,18 @@ namespace TennisHighlights
     /// </summary>
     public class GeneralSettings
     {
+        /// <summary>
+        /// Gets or sets a value indicating whether [limit maximum video bitrate].
+        /// </summary>
+        public bool LimitMaxVideoBitrate { get; set; }
+        /// <summary>
+        /// Gets or sets the maximum video bitrate.
+        /// </summary>
+        public int MaxVideoBitrate { get; set; }
+        /// <summary>
+        /// Gets or sets a value indicating whether [copy non keyframes].
+        /// </summary>
+        public bool CopyNonKeyframes { get; set; }
         /// <summary>
         /// Gets or sets a value indicating whether [disable image preview].
         /// </summary>
@@ -145,11 +160,10 @@ namespace TennisHighlights
                     FrameMaxHeight = generalSettings.GetIntElementValue(SettingsKeys.FrameMaxHeight, 720);
                     BallExtractionWorkers = generalSettings.GetIntElementValue(SettingsKeys.BallExtractionWorkers, 20);
                     FrameExtractionWorkers = generalSettings.GetIntElementValue(SettingsKeys.FrameExtractionWorkers, 10);
-
+                    CopyNonKeyframes = generalSettings.GetBoolElementValue(SettingsKeys.CopyNonKeyframes, false);
                     TempDataPath = generalSettings.GetStringElementValue(SettingsKeys.TempDataPath);
-
-                    if (!TempDataPath.EndsWith("\\")) { TempDataPath += "\\"; }
-
+                    LimitMaxVideoBitrate = generalSettings.GetBoolElementValue(SettingsKeys.LimitMaxVideoBitrate);
+                    MaxVideoBitrate = generalSettings.GetIntElementValue(SettingsKeys.MaxVideoBitrate, 2);
                     FFmpegPath = generalSettings.GetStringElementValue(SettingsKeys.FFmpegPath);
 
                     if (!File.Exists(FFmpegPath))
@@ -188,7 +202,10 @@ namespace TennisHighlights
             xElement.AddElementWithValue(SettingsKeys.BallExtractionWorkers, BallExtractionWorkers);
             xElement.AddElementWithValue(SettingsKeys.FrameExtractionWorkers, FrameExtractionWorkers);
             xElement.AddElementWithValue(SettingsKeys.FrameMaxHeight, FrameMaxHeight);
-             
+            xElement.AddElementWithValue(SettingsKeys.CopyNonKeyframes, CopyNonKeyframes);
+            xElement.AddElementWithValue(SettingsKeys.MaxVideoBitrate, MaxVideoBitrate);
+            xElement.AddElementWithValue(SettingsKeys.LimitMaxVideoBitrate, LimitMaxVideoBitrate);
+
             return xElement;
         }
 
@@ -344,6 +361,8 @@ namespace TennisHighlights
 
                 Logger.Log(LogType.Error, "Problem loading settings: " + e.ToString());
             }
+
+            FFmpegCaller.Settings = General;
         }
 
         /// <summary>

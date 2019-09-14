@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 
 namespace TennisHighlights.Utils
@@ -26,11 +27,44 @@ namespace TennisHighlights.Utils
         /// <summary>
         /// The log path
         /// </summary>
-        private static readonly string _logPath; 
+        private static readonly string _logPath;
         /// <summary>
         /// Initializes the <see cref="Logger"/> class.
         /// </summary>
-        static Logger() => _logPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\log.txt";
+        static Logger()
+        {
+            _logPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\log.txt";
+
+            TrimLog();
+        }
+
+        /// <summary>
+        /// Trims the log.
+        /// </summary>
+        public static void TrimLog()
+        {
+            var iMaxLogLength = 10000; // Probably should be bigger, say 200,000
+            var keepLines = 5000; // minimum of how much of the old log to leave
+
+            try
+            {
+                var fi = new FileInfo(_logPath);
+                if (fi.Length > iMaxLogLength) // if the log file length is already too long
+                {
+                    var TotalLines = 0;
+                    var file = File.ReadAllLines(_logPath);
+                    var LineArray = file.ToList();
+                    var AmountToCull = (int)(LineArray.Count - keepLines);
+                    var trimmed = LineArray.Skip(AmountToCull).ToList();
+                    File.WriteAllLines(_logPath, trimmed);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Failed to write to logfile : " + ex.Message);
+            }
+        }
 
         /// <summary>
         /// Logs the specified message. Has lock because it should be used sparingly in the first place, so performance isn't an issue

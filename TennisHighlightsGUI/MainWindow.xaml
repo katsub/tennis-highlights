@@ -127,6 +127,23 @@
                 <CheckBox IsChecked="{Binding Settings.General.AutoJoinAll}"
                           ToolTip="When conversion is over, automatically joins all rallies and exports them"
                           Content="Auto join all and export" />
+                <CheckBox IsChecked="{Binding Settings.General.CopyNonKeyframes}"
+                          ToolTip="Use this if converted videos freeze for several seconds, it's a lot slower but ensures non keyframe videos get correctly copied"
+                          Content="Copy non keyframes" />
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox IsChecked="{Binding Settings.General.LimitMaxVideoBitrate}"
+                              ToolTip="This will reduce the video's quality and its size."
+                              Content="Limit video bitrate: " />
+                    <TextBox Width="20"
+                             Height="15"
+                             Padding="0,-2,0,0"
+                             ToolTip="This will reduce the video's quality and its size."
+                             thwpf:AutoSelectAll.IsEnabled="True"
+                             thwpf:NumberOnlyBehaviour.IsEnabled="True"
+                             Text="{Binding Settings.General.MaxVideoBitrate}" />
+                    <TextBlock Text=" M"
+                               IsEnabled="{Binding IsConverting, Converter={StaticResource boolToNotBool}}" />
+                </StackPanel>
             </StackPanel>
             <thwpf:ProgressBar ProgressDetails="{Binding ProgressDetails}"
                                ProgressPercent="{Binding ProgressPercent}"
