@@ -49,3 +49,7 @@ The project can be built with Visual Studio 2019 Preview 8 or higher. No externa
 # Contributing
 
 If you're happy with the project and you'd like to support it, you can [make a donation here](https://www.paypal.com/donate/?token=qMxrkbZ7wdmH0MHlTh5IOgTXSlkgKpNcbSjluXLvRvypnu8EmN0ET_KXginl9WWpV2OkrW&country.x=FR&locale.x=FR)
+
+# Acknowledgments
+
+Application icon provided by Freepik
