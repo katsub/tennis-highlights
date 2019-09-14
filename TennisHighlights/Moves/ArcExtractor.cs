@@ -22,7 +22,7 @@ namespace TennisHighlights.Moves
         /// <summary>
         /// The ball interframe maximum square distance (max squared speed)
         /// </summary>
-        private static readonly ResolutionDependentParameter _ballInterframeMaxSquareDistance = new ResolutionDependentParameter(900d, 2d);
+        private static readonly ResolutionDependentParameter _ballInterframeMaxSquareDistance = new ResolutionDependentParameter(4000d, 2d);
         /// <summary>
         /// The minimum correlation for arc
         /// </summary>

@@ -40,6 +40,7 @@ namespace TennisHighlights
         public const string CopyNonKeyframes = "CopyNonKeyframes";
         public const string MaxVideoBitrate = "MaxVideoBitrate";
         public const string LimitMaxVideoBitrate = "LimitMaxVideoBitrate";
+        public const string PreciseTrimming = "PreciseTrimming";
     }
 
     /// <summary>
@@ -47,6 +48,10 @@ namespace TennisHighlights
     /// </summary>
     public class GeneralSettings
     {
+        /// <summary>
+        /// Gets or sets a value indicating whether [precise trimming].
+        /// </summary>
+        public bool PreciseTrimming { get; set; }
         /// <summary>
         /// Gets or sets a value indicating whether [limit maximum video bitrate].
         /// </summary>
@@ -66,19 +71,19 @@ namespace TennisHighlights
         /// <summary>
         /// The custom start frame
         /// </summary>
-        public int CustomStartMinute { get; set; } = 0;
+        public int CustomStartMinute { get; set; }
         /// <summary>
         /// The custom stop frame
         /// </summary>
-        public int CustomStopMinute { get; set; } = 0;
+        public int CustomStopMinute { get; set; }
         /// <summary>
         /// The use custom start frame
         /// </summary>
-        public bool UseCustomStartFrame { get; set; } = false;
+        public bool UseCustomStartFrame { get; set; }
         /// <summary>
         /// The use custom stop frame
         /// </summary>
-        public bool UseCustomStopFrame { get; set; } = false;
+        public bool UseCustomStopFrame { get; set; }
         /// <summary>
         /// Gets the frames per backup.
         /// </summary>
@@ -98,17 +103,17 @@ namespace TennisHighlights
         /// <summary>
         /// The number of frame extraction workers
         /// </summary>
-        public static int FrameExtractionWorkers = 10;
+        public static int FrameExtractionWorkers { get; set; }
         /// <summary>
         /// Gets the number of ball extaction workers.
         /// </summary> 
-        public int BallExtractionWorkers { get; } = 20;
+        public int BallExtractionWorkers { get; }
         /// <summary>
         /// Gets the maximum height of frame used in the video analysis. All frames will be resized to this height unless they have equal or 
         /// smaller height.
         /// 720 seems like a good value from personal tests, 480 gives some detection errors and 1080 is too slow.
         /// </summary>
-        public int FrameMaxHeight { get; } = 720;
+        public int FrameMaxHeight { get; }
         /// <summary>
         /// Gets the analysed video path
         /// </summary>
@@ -136,44 +141,42 @@ namespace TennisHighlights
         /// <param name="xmlElement">The serialized settings.</param>
         public GeneralSettings(XElement serializedSettings = null)
         {
-            if (serializedSettings != null)
+            var generalSettings = serializedSettings?.Element(SettingsKeys.GeneralSettings);
+
+            //We create fake settings just to initialize with the default value
+            if (generalSettings == null) { generalSettings = new XElement("dummySettings"); }
+
+            AnalysedVideoPath = generalSettings.GetStringElementValue(SettingsKeys.AnalysedVideoPath);
+
+            if (!File.Exists(AnalysedVideoPath))
             {
-                var generalSettings = serializedSettings.Element(SettingsKeys.GeneralSettings);
-
-                if (generalSettings != null)
-                {
-                    AnalysedVideoPath = generalSettings.GetStringElementValue(SettingsKeys.AnalysedVideoPath);
-
-                    if (!File.Exists(AnalysedVideoPath))
-                    {
-                        AnalysedVideoPath = "";
-                    }
-
-                    DrawGizmos = generalSettings.GetBoolElementValue(SettingsKeys.DrawGizmos, false);
-                    FilterRalliesByDuration = generalSettings.GetBoolElementValue(SettingsKeys.FilterRalliesByDuration, true);
-                    CustomStartMinute = generalSettings.GetIntElementValue(SettingsKeys.CustomStartMinute, 0);
-                    CustomStopMinute = generalSettings.GetIntElementValue(SettingsKeys.CustomStopMinute, 0);
-                    UseCustomStartFrame = generalSettings.GetBoolElementValue(SettingsKeys.UseCustomStartFrame, false);
-                    UseCustomStopFrame = generalSettings.GetBoolElementValue(SettingsKeys.UseCustomStopFrame, false);
-                    DisableImagePreview = generalSettings.GetBoolElementValue(SettingsKeys.DisableImagePreview, false);
-                    AutoJoinAll = generalSettings.GetBoolElementValue(SettingsKeys.AutoJoinAll, false);
-                    FrameMaxHeight = generalSettings.GetIntElementValue(SettingsKeys.FrameMaxHeight, 720);
-                    BallExtractionWorkers = generalSettings.GetIntElementValue(SettingsKeys.BallExtractionWorkers, 20);
-                    FrameExtractionWorkers = generalSettings.GetIntElementValue(SettingsKeys.FrameExtractionWorkers, 10);
-                    CopyNonKeyframes = generalSettings.GetBoolElementValue(SettingsKeys.CopyNonKeyframes, false);
-                    TempDataPath = generalSettings.GetStringElementValue(SettingsKeys.TempDataPath);
-                    LimitMaxVideoBitrate = generalSettings.GetBoolElementValue(SettingsKeys.LimitMaxVideoBitrate);
-                    MaxVideoBitrate = generalSettings.GetIntElementValue(SettingsKeys.MaxVideoBitrate, 2);
-                    FFmpegPath = generalSettings.GetStringElementValue(SettingsKeys.FFmpegPath);
-
-                    if (!File.Exists(FFmpegPath))
-                    {
-                        FFmpegPath = string.Empty;
-                    }
-                   
-                    FFmpegCaller.FFmpegPath = FFmpegPath;
-                }
+                AnalysedVideoPath = "";
             }
+
+            DrawGizmos = generalSettings.GetBoolElementValue(SettingsKeys.DrawGizmos, false);
+            FilterRalliesByDuration = generalSettings.GetBoolElementValue(SettingsKeys.FilterRalliesByDuration, true);
+            CustomStartMinute = generalSettings.GetIntElementValue(SettingsKeys.CustomStartMinute, 0);
+            CustomStopMinute = generalSettings.GetIntElementValue(SettingsKeys.CustomStopMinute, 5);
+            UseCustomStartFrame = generalSettings.GetBoolElementValue(SettingsKeys.UseCustomStartFrame, false);
+            UseCustomStopFrame = generalSettings.GetBoolElementValue(SettingsKeys.UseCustomStopFrame, true);
+            DisableImagePreview = generalSettings.GetBoolElementValue(SettingsKeys.DisableImagePreview, true);
+            AutoJoinAll = generalSettings.GetBoolElementValue(SettingsKeys.AutoJoinAll, true);
+            FrameMaxHeight = generalSettings.GetIntElementValue(SettingsKeys.FrameMaxHeight, 720);
+            BallExtractionWorkers = generalSettings.GetIntElementValue(SettingsKeys.BallExtractionWorkers, 20);
+            FrameExtractionWorkers = generalSettings.GetIntElementValue(SettingsKeys.FrameExtractionWorkers, 10);
+            CopyNonKeyframes = generalSettings.GetBoolElementValue(SettingsKeys.CopyNonKeyframes, false);
+            TempDataPath = generalSettings.GetStringElementValue(SettingsKeys.TempDataPath);
+            LimitMaxVideoBitrate = generalSettings.GetBoolElementValue(SettingsKeys.LimitMaxVideoBitrate);
+            MaxVideoBitrate = generalSettings.GetIntElementValue(SettingsKeys.MaxVideoBitrate, 2);
+            FFmpegPath = generalSettings.GetStringElementValue(SettingsKeys.FFmpegPath);
+            PreciseTrimming = generalSettings.GetBoolElementValue(SettingsKeys.PreciseTrimming, true);
+
+            if (!File.Exists(FFmpegPath))
+            {
+                FFmpegPath = string.Empty;
+            }
+
+            FFmpegCaller.FFmpegPath = FFmpegPath;
 
             if (!Directory.Exists(TempDataPath))
             {
@@ -205,6 +208,7 @@ namespace TennisHighlights
             xElement.AddElementWithValue(SettingsKeys.CopyNonKeyframes, CopyNonKeyframes);
             xElement.AddElementWithValue(SettingsKeys.MaxVideoBitrate, MaxVideoBitrate);
             xElement.AddElementWithValue(SettingsKeys.LimitMaxVideoBitrate, LimitMaxVideoBitrate);
+            xElement.AddElementWithValue(SettingsKeys.PreciseTrimming, PreciseTrimming);
 
             return xElement;
         }
@@ -349,6 +353,7 @@ namespace TennisHighlights
         {
             try
             {
+                _document = serializedSettings ?? XDocument.Load(_documentPath);
                 _document = serializedSettings ?? XDocument.Load(_documentPath);
 
                 General = new GeneralSettings(_document.Root);

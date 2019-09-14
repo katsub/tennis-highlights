@@ -129,7 +129,7 @@ namespace TennisHighlights.Utils
         /// <param name="askedToStop">The asked to stop.</param>
         public static bool TrimRallyFromAnalysedFile(int rallyIndex, double startSeconds, double stopSeconds, string originalFile, out string error, Func<bool> askedToStop = null)
         {
-            var fileName = FileManager.TempDataPath + FileManager.RallyVideosFolder + "//" + rallyIndex + ".mp4";
+            var fileName = FileManager.TempDataPath + FileManager.RallyVideosFolder + "//" + rallyIndex.ToString("D3") + ".mp4";
 
             return TrimRallyFromAnalysedFile(fileName, startSeconds, stopSeconds, originalFile, out error, askedToStop);
         }
@@ -146,10 +146,23 @@ namespace TennisHighlights.Utils
         public static bool TrimRallyFromAnalysedFile(string fileName, double startSeconds, double stopSeconds, string originalFile, out string error, Func<bool> askedToStop = null)
         {
             Directory.CreateDirectory(FileManager.TempDataPath + FileManager.RallyVideosFolder);
+            var arguments = "";
+            var startPoint = " -ss " + TimeSpan.FromSeconds(startSeconds); ;
+            var inputFile = " -i " + originalFile; ;
 
-            var arguments = "-i " + originalFile;
+            //FFmpeg interprets arguments differently depending on their position: setting the -ss option before the input is fast while setting it
+            //before the output ensures precision
+            if (Settings.PreciseTrimming)
+            {
+                arguments += inputFile;
+                arguments += startPoint;
+            }
+            else
+            {
+                arguments += startPoint;
+                arguments += inputFile;
+            }
 
-            arguments += " -ss " + TimeSpan.FromSeconds(startSeconds);
             arguments += " -t " + TimeSpan.FromSeconds(stopSeconds - startSeconds);
 
             //copyinkf is needed so the trimmed video won't be stuck because it was trimmed in section where there was no keyframe
@@ -173,7 +186,7 @@ namespace TennisHighlights.Utils
 
             var ralliesPaths = new StringBuilder();
 
-            foreach (var rally in Directory.GetFiles(rallyFolderPath).Where(f => f.EndsWith(".mp4")))
+            foreach (var rally in Directory.GetFiles(rallyFolderPath).Where(f => f.EndsWith(".mp4")).OrderBy(b => b))
             {
                 ralliesPaths.AppendLine("file '" + rally + "'");
             }

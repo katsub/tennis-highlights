@@ -46,7 +46,9 @@ namespace TennisHighlights.Rallies
             if (rallies.Count > numberOfClusters)
             {
                 //Hypothesis: there's a super-short duration noise cluster, a short point duration cluster and a long point duration cluster
-                var clusterDurations = new KMeans(numberOfClusters).Learn(rallies.Select(r => new double[] { r.Key.DurationInFrames }).ToArray());
+                var kMeans = new KMeans(numberOfClusters);
+                Accord.Math.Random.Generator.Seed = 0;
+                var clusterDurations = kMeans.Learn(rallies.Select(r => new double[] { r.Key.DurationInFrames }).ToArray());
                 var maxDuration = (double)rallies.Max(r => r.Key.DurationInFrames);
 
                 foreach (var rally in rallies)

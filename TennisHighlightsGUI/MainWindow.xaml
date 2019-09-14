@@ -95,7 +95,7 @@
                     Grid.Column="1">
             <StackPanel>
                 <TextBlock FontWeight="Bold"
-                           Text="SETTINGS" />
+                           Text="EXTRACTION SETTINGS" />
                 <CheckBox IsChecked="{Binding Settings.General.FilterRalliesByDuration}"
                           Content="Filter rallies by duration" />
                 <StackPanel Orientation="Horizontal">
@@ -124,6 +124,9 @@
                 </StackPanel>
                 <CheckBox IsChecked="{Binding Settings.General.DisableImagePreview}"
                           Content="Disable image preview" />
+                <TextBlock FontWeight="Bold"
+                           Text="EXPORT SETTINGS" 
+                           Margin="0,10,0,0"/>
                 <CheckBox IsChecked="{Binding Settings.General.AutoJoinAll}"
                           ToolTip="When conversion is over, automatically joins all rallies and exports them"
                           Content="Auto join all and export" />
@@ -144,6 +147,9 @@
                     <TextBlock Text=" M"
                                IsEnabled="{Binding IsConverting, Converter={StaticResource boolToNotBool}}" />
                 </StackPanel>
+                <CheckBox IsChecked="{Binding Settings.General.PreciseTrimming}"
+                          ToolTip="This is a lot slower but ensures the video is cut exactly where it was meant to"
+                          Content="Precise trimming" />
             </StackPanel>
             <thwpf:ProgressBar ProgressDetails="{Binding ProgressDetails}"
                                ProgressPercent="{Binding ProgressPercent}"

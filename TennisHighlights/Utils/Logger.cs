@@ -51,11 +51,11 @@ namespace TennisHighlights.Utils
                 var fi = new FileInfo(_logPath);
                 if (fi.Length > iMaxLogLength) // if the log file length is already too long
                 {
-                    var TotalLines = 0;
+                    var totalLines = 0;
                     var file = File.ReadAllLines(_logPath);
-                    var LineArray = file.ToList();
-                    var AmountToCull = (int)(LineArray.Count - keepLines);
-                    var trimmed = LineArray.Skip(AmountToCull).ToList();
+                    var lineArray = file.ToList();
+                    var amountToCull = (int)(lineArray.Count - keepLines);
+                    var trimmed = lineArray.Skip(amountToCull).ToList();
                     File.WriteAllLines(_logPath, trimmed);
                 }
 

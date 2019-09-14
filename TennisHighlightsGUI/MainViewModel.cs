@@ -451,16 +451,13 @@ namespace TennisHighlightsGUI
             var clusterSize = 5;
             var rallies = TennisHighlightsEngine.GetRalliesFromBalls(Settings, ChosenFileLog.Balls, ChosenFileLog, rallyProgressUpdateAction, cancelRequested);
 
-            if (rallies.Count > clusterSize)
+            if (rallies.Count > clusterSize && Settings.General.FilterRalliesByDuration)
             {
-                if (Settings.General.FilterRalliesByDuration)
-                {
-                    var filter = RallyFilter.ScoreByDuration(rallies.ToDictionary(r => r, r => new RallyFilterInfo(rallies.IndexOf(r))), clusterSize);
+                var filter = RallyFilter.ScoreByDuration(rallies.ToDictionary(r => r, r => new RallyFilterInfo(rallies.IndexOf(r))), clusterSize);
 
-                    var shortDurationClusters = new HashSet<int>(filter.clusters.Clusters.OrderBy(c => c.Centroid[0]).Take(2).Select(c => c.Index));
+                var shortDurationClusters = new HashSet<int>(filter.clusters.Clusters.OrderBy(c => c.Centroid[0]).Take(2).Select(c => c.Index));
 
-                    rallies = new List<Rally>(filter.rallies.Where(r => !shortDurationClusters.Contains(r.Value.DurationCluster)).Select(r => r.Key));
-                }
+                rallies = new List<Rally>(filter.rallies.Where(r => !shortDurationClusters.Contains(r.Value.DurationCluster)).Select(r => r.Key));
             }
 
             ChosenFileLog.Rallies.Clear();

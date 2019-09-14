@@ -29,7 +29,7 @@ namespace TennisHighlights
             var arcsPerFrame = GetArcsPerFrame(ballsPerFrame);
 
             //We assume the video aspect ratio to be 1.78 and the analysed height to be the same from when the balls were calculated
-            return BuildRallies(settings.RallyBuildingSettings, arcsPerFrame,
+            return BuildRallies(settings.RallyBuildingSettings, arcsPerFrame, processedFileLog,
                                 new System.Drawing.Size((int)1.78d * settings.General.FrameMaxHeight,
                                                         settings.General.FrameMaxHeight),
                                 rallyProgressUpdateInfo, wasCancelRequested);
@@ -41,12 +41,13 @@ namespace TennisHighlights
         /// </summary>
         /// <param name="settings">The settings.</param>
         /// <param name="arcsPerFrame">The arcs per frame.</param>
+        /// <param name="processedFileLog">The processed file log.</param>
         /// <param name="targetSize">Size of the target.</param>
         /// <param name="rallyProgressUpdateInfo">The rally progress update information.</param>
         /// <param name="wasCancelRequested">The was cancel requested.</param>
-        private static List<Rally> BuildRallies(RallyBuildingSettings settings, Dictionary<int, Dictionary<int, Arc>> arcsPerFrame, 
-                                                System.Drawing.Size targetSize, Action<int, int> rallyProgressUpdateInfo = null,
-                                                Func<bool> wasCancelRequested = null)
+        private static List<Rally> BuildRallies(RallyBuildingSettings settings, Dictionary<int, Dictionary<int, Arc>> arcsPerFrame,
+                                                ProcessedFileLog processedFileLog, System.Drawing.Size targetSize, 
+                                                Action<int, int> rallyProgressUpdateInfo = null, Func<bool> wasCancelRequested = null)
         {
             var rallyBuilder = new RallyBuilder(settings, targetSize);
 
