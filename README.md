@@ -28,7 +28,8 @@ You'll also need the FFmpeg executable in order to export the videos, you can do
 3. That's it! You can now try some things:
     - Untick the "Stop at X minutes" checkbox, so the entire video will be converted
     - Untick the "Auto join all and export", so you can edit the rallies and pick which ones you want to keep
-  
+    - Open the settings.xml file and increase the number of "BallExtractionWorkers" and "FrameExtractionWorkers" until you stop seeing an improvement on the processing time
+ 
   *Rally Selection View*
   
   The right column contains a list of all rallies extracted and their durations. All checked rallies on that list will be kept on the exported video. 
