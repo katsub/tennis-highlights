@@ -180,8 +180,10 @@ namespace TennisHighlights
 
             if (!Directory.Exists(TempDataPath))
             {
-                TempDataPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\Output\\";
+                TempDataPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\Output";
             }
+
+            if (TempDataPath.EndsWith("\\")) { TempDataPath = TempDataPath.Substring(0, TempDataPath.Length - 2); }
         }
 
         /// <summary>
@@ -353,7 +355,6 @@ namespace TennisHighlights
         {
             try
             {
-                _document = serializedSettings ?? XDocument.Load(_documentPath);
                 _document = serializedSettings ?? XDocument.Load(_documentPath);
 
                 General = new GeneralSettings(_document.Root);

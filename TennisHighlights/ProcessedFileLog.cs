@@ -176,31 +176,36 @@ namespace TennisHighlights
         /// <param name="generalSettings">The general settings.</param>
         public static ProcessedFileLog GetOrCreateProcessedFileLog(GeneralSettings generalSettings)
         {
-            var currentFileSignature = GetFileSignatureFromFile(generalSettings.AnalysedVideoPath);
-
-            string processedFileLogPath = null;
-
-            var logFolder = FileManager.PersistentDataPath + _processedFileLogCacheFolder;
-
-            if (!Directory.Exists(logFolder)) { Directory.CreateDirectory(logFolder); }
-
-            foreach (var file in Directory.GetFiles(logFolder))
+            if (File.Exists(generalSettings.AnalysedVideoPath))
             {
-                if (GetFileSignatureFromLogFile(file) == currentFileSignature)
+                var currentFileSignature = GetFileSignatureFromFile(generalSettings.AnalysedVideoPath);
+
+                string processedFileLogPath = null;
+
+                var logFolder = FileManager.PersistentDataPath + _processedFileLogCacheFolder;
+
+                if (!Directory.Exists(logFolder)) { Directory.CreateDirectory(logFolder); }
+
+                foreach (var file in Directory.GetFiles(logFolder))
                 {
-                    processedFileLogPath = file;
+                    if (GetFileSignatureFromLogFile(file) == currentFileSignature)
+                    {
+                        processedFileLogPath = file;
+                    }
                 }
+
+                if (processedFileLogPath == null)
+                {
+                    var logPath = FileManager.GetUnusedFilePathInFolderFromFileName(generalSettings.AnalysedVideoPath,
+                                                                                    FileManager.PersistentDataPath + _processedFileLogCacheFolder, ".xml");
+
+                    return new ProcessedFileLog(generalSettings.AnalysedVideoPath, logPath);
+                }
+
+                return new ProcessedFileLog(processedFileLogPath);
             }
 
-            if (processedFileLogPath == null)
-            {
-                var logPath = FileManager.GetUnusedFilePathInFolderFromFileName(generalSettings.AnalysedVideoPath,
-                                                                                FileManager.PersistentDataPath + _processedFileLogCacheFolder, ".xml");
-
-                return new ProcessedFileLog(generalSettings.AnalysedVideoPath, logPath);
-            }
-
-            return new ProcessedFileLog(processedFileLogPath);
+            return null;
         }
 
         /// <summary>
