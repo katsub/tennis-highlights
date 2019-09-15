@@ -13,6 +13,7 @@ using InWit.Core.Collections;
 
 namespace InWit.WPF.MultiRangeSlider
 {
+    ///CPOL License (code project) https://www.codeproject.com/info/cpol10.aspx
     /// <summary>
     /// Interaction logic for WitMultiRangeSlider.xaml
     /// </summary>
