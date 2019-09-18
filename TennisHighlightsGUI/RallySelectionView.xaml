@@ -43,6 +43,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <TextBlock Text="Select rallies:"
                        FontWeight="Bold"
@@ -130,6 +131,13 @@
                     Content="Back"
                     Background="LightSkyBlue"
                     Command="{Binding BackToMainCommand}" />
+            <Grid Grid.Row="7"
+                  Margin="0,5,0,-5">
+                <Button Content="Log"
+                        VerticalAlignment="Bottom"
+                        Style="{StaticResource cancelButton}"
+                        Command="{Binding OpenLogCommand}" />
+            </Grid>
         </Grid>
         <Grid>
             <Grid.RowDefinitions>

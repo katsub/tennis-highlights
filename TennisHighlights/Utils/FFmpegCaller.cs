@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -22,14 +23,34 @@ namespace TennisHighlights.Utils
         public static string FFmpegPath { get; set; }
 
         /// <summary>
+        /// The instances
+        /// </summary>
+        private static readonly List<Process> _instances = new List<Process>();
+
+        /// <summary>
+        /// Kills all instances.
+        /// </summary>
+        public static void KillAllInstances()
+        {
+            foreach (var instance in _instances)
+            {
+                try
+                {
+                    instance.Kill();
+                }
+                catch { }
+            }
+        }
+
+        /// <summary>
         /// Calls FFmpeg with the specified arguments.
         /// </summary>
         /// <param name="arguments">The arguments.</param>
         /// <param name="error">The error.</param>
         /// <param name="askedToStop">The asked to stop.</param>
-        public static bool Call(string arguments, out string error, Func<bool> askedToStop = null)
+        public static async Task<(bool success, string error)> Call(string arguments, Func<bool> askedToStop = null)
         {
-            error = null;
+            string error = null;
 
             try
             {
@@ -37,27 +58,54 @@ namespace TennisHighlights.Utils
                 proc.StartInfo.FileName = FFmpegPath;
                 proc.StartInfo.Arguments = arguments;
                 proc.StartInfo.RedirectStandardError = true;
+                proc.StartInfo.RedirectStandardOutput = true;
                 proc.StartInfo.UseShellExecute = false;
                 proc.StartInfo.CreateNoWindow = true;
-
-                Task.Run(() => KillProcessIfAskedToStop(proc, askedToStop));
 
                 if (!proc.Start())
                 {
                     Logger.Log(LogType.Error, "Could not start FFmpeg.");
-                    return false;
+                    return (false, error);
                 }
 
-                var reader = proc.StandardError;
-                string line;
-                while ((line = reader.ReadLine()) != null)
+                _instances.Add(proc);
+
+                await Task.Delay(1000);
+
+                try
                 {
-                    Logger.Log(LogType.Error, line);
-                }
+                    proc.BeginOutputReadLine();
+                    proc.BeginErrorReadLine();
 
+                    proc.OutputDataReceived += (sender, e) => {
+                        Logger.Log(LogType.Information, e.Data);
+                    };
+
+                    proc.ErrorDataReceived += (sender, e) =>
+                    {
+                        Logger.Log(LogType.Error, e.Data);
+                    };
+
+                    while (!proc.HasExited)
+                    {
+                        await Task.Delay(1000);
+
+                        if (askedToStop?.Invoke() == true)
+                        {
+                            proc.Kill();
+                            break;
+                        }
+                    }
+                }
+                catch { }
+
+                await Task.Delay(1000);
+                
                 proc.Close();
 
-                return true;
+                _instances.Remove(proc);
+
+                return (true, error);
             }
             catch (Exception e)
             {
@@ -67,10 +115,11 @@ namespace TennisHighlights.Utils
 
                 Logger.Log(LogType.Error, message);
 
-                return false;
+                return (false, error);
             }
         }
 
+        /*
         /// <summary>
         /// Kills the process if asked to stop.
         /// </summary>
@@ -86,22 +135,18 @@ namespace TennisHighlights.Utils
 
                 while (!hasExited)
                 {
-                    var reader = proc.StandardOutput;
-                    string line;
-                    while ((line = reader.ReadLine()) != null)
+                    Task.Run(() =>
                     {
-                        Logger.Log(LogType.Information, line);
-                    }
-
-                    reader = proc.StandardError;
-                    while ((line = reader.ReadLine()) != null)
-                    {
-                        Logger.Log(LogType.Error, line);
-                    }
+                    });
 
                     if (askedToStop?.Invoke() == true)
                     {
-                        proc.Kill();
+                        try
+                        {
+                            proc.Kill();
+                        }
+                        catch { }
+
                         break;
                     }
 
@@ -117,6 +162,7 @@ namespace TennisHighlights.Utils
                 Logger.Log(LogType.Error, "Kill process failed: " + e.ToString());
             }
         }
+        */
 
         /// <summary>
         /// Trims the rally from analysed file.
@@ -171,7 +217,11 @@ namespace TennisHighlights.Utils
 
             arguments += copyingMethod + fileName;
 
-            return Call(arguments, out error, askedToStop);
+            var taskResult = Call(arguments, askedToStop).Result;
+
+            error = taskResult.error;
+
+            return taskResult.success;
         }
 
         /// <summary>
@@ -200,7 +250,7 @@ namespace TennisHighlights.Utils
 
             var arguments = "-f concat -safe 0 -i " + rallyFilePath + videoCodec + " -c:a copy " + resultFilePath;
 
-            Call(arguments, out error, askedToStop);
+            error = Call(arguments, askedToStop).Result.error;
         }
     }
 }

@@ -391,10 +391,13 @@ namespace TennisHighlightsGUI
                 {
                     rallyPath = saveFileDialog.FileName;
 
-                    FFmpegCaller.TrimRallyFromAnalysedFile(rallyPath, rally.Start / videoInfo.FrameRate,
-                                                                      rally.Stop / videoInfo.FrameRate, settings.AnalysedVideoPath, out var error, () => RequestedCancel);
+                    Task.Run(() =>
+                    {
+                        FFmpegCaller.TrimRallyFromAnalysedFile(rallyPath, rally.Start / videoInfo.FrameRate,
+                                                                          rally.Stop / videoInfo.FrameRate, settings.AnalysedVideoPath, out var error, () => RequestedCancel);
 
-                    Process.Start("explorer.exe", FileManager.TempDataPath);
+                        Process.Start("explorer.exe", FileManager.TempDataPath);
+                    });
                 }
             });
 
@@ -573,6 +576,10 @@ namespace TennisHighlightsGUI
             }
 
             Pause();
+
+            //We're gonna do heavy operations, could lead to out of memory or C++ crash, better save everything before doing so
+            _mainVM.Settings.Save();
+            _mainVM.ChosenFileLog.Save();
 
             //Begin conversion
             Task.Run(() =>

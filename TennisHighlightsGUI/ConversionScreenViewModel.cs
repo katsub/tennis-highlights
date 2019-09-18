@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media.Imaging;
+using TennisHighlights.Utils;
 
 namespace TennisHighlightsGUI
 {
@@ -138,6 +140,10 @@ namespace TennisHighlightsGUI
         public bool RequestedCancel { get; private set; }
 
         /// <summary>
+        /// Gets the open log command.
+        /// </summary>
+        public Command OpenLogCommand { get; }
+        /// <summary>
         /// Gets the convert command.
         /// </summary>
         public Command ConvertCommand { get; }
@@ -157,6 +163,11 @@ namespace TennisHighlightsGUI
         public VideoConversionScreenViewModel()
         {
             _updateRemainingSecondsTimer.Elapsed += _updateRemainingSecondsTimer_Elapsed;
+
+            OpenLogCommand = new Command((param) =>
+            {
+                Process.Start("notepad.exe", Logger.LogPath);
+            });
 
             ConvertCommand = new Command((param) =>
             {              

@@ -367,14 +367,7 @@ namespace TennisHighlights
 
                 Logger.Log(LogType.Error, "Problem loading settings: " + e.ToString());
             }
-
-            FFmpegCaller.Settings = General;
         }
-
-        /// <summary>
-        /// Clones this instance.
-        /// </summary>
-        public TennisHighlightsSettings Clone() => new TennisHighlightsSettings(Serialize());
 
         /// <summary>
         /// Serializes this instance.

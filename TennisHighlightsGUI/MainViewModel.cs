@@ -262,7 +262,9 @@ namespace TennisHighlightsGUI
                 return;
             }
 
+            //We're gonna do heavy operations, could lead to out of memory or C++ crash, better save everything before doing so
             Settings.Save();
+            ChosenFileLog.Save();
 
             //Begin conversion
             var stopwatch = new Stopwatch();
@@ -306,7 +308,7 @@ namespace TennisHighlightsGUI
 
                         bool checkIfCancelRequested() => RequestedCancel;
 
-                        var ballsPerFrame = new VideoBallsExtractor(Settings.Clone(), VideoInfo, ChosenFileLog,
+                        var ballsPerFrame = new VideoBallsExtractor(Settings, VideoInfo, ChosenFileLog,
                                                                     checkIfCancelRequested, progressUpdateAction).GetBallsPerFrame().Result;
 
                         ChosenFileLog.Save();
@@ -384,6 +386,8 @@ namespace TennisHighlightsGUI
             Settings = new TennisHighlightsSettings();
             //This creates an initial settings file that can be modified later if needed
             Settings.Save();
+
+            FFmpegCaller.Settings = Settings.General;
 
             if (string.IsNullOrEmpty(Settings.General.FFmpegPath))
             {
@@ -485,6 +489,8 @@ namespace TennisHighlightsGUI
         {
             Settings.Save();
             ChosenFileLog?.Save();
+
+            FFmpegCaller.KillAllInstances();
         }
 
         /// <summary>

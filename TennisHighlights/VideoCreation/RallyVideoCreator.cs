@@ -23,6 +23,19 @@ namespace TennisHighlights.VideoCreation
         public static void BuildVideoWithAllRallies(List<RallyEditData> rallies, VideoInfo videoInfo, GeneralSettings settings, out string error,
                                                     Action<string, int, double> updateProgressInfo = null, Func<bool> gotCanceled = null)
         {
+            //Join all rallies that overlap
+            for (int j = rallies.Count - 1; j > 0; j--)
+            {
+                var currentRally = rallies[j];
+                var previousRally = rallies[j - 1];
+
+                if (currentRally.Start <= previousRally.Stop)
+                {
+                    previousRally.Stop = currentRally.Stop;
+                    rallies.RemoveAt(j);
+                }
+            }
+
             error = null;
             FileManager.CleanFolder(FileManager.RallyVideosFolder);
 

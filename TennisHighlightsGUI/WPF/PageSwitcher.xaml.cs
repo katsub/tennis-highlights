@@ -20,6 +20,8 @@ namespace TennisHighlightsGUI
         {
             AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(CurrentDomain_UnhandledException);
 
+            Logger.Log(LogType.Information, "App started.");
+
             var viewModel = new PageSwitchViewModel(640); 
 
             DataContext = viewModel;

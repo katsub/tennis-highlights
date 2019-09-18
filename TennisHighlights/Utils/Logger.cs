@@ -27,13 +27,13 @@ namespace TennisHighlights.Utils
         /// <summary>
         /// The log path
         /// </summary>
-        private static readonly string _logPath;
+        public static string LogPath { get; private set; }
         /// <summary>
         /// Initializes the <see cref="Logger"/> class.
         /// </summary>
         static Logger()
         {
-            _logPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\log.txt";
+            LogPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\log.txt";
 
             TrimLog();
         }
@@ -48,15 +48,15 @@ namespace TennisHighlights.Utils
 
             try
             {
-                var fi = new FileInfo(_logPath);
+                var fi = new FileInfo(LogPath);
                 if (fi.Length > iMaxLogLength) // if the log file length is already too long
                 {
                     var totalLines = 0;
-                    var file = File.ReadAllLines(_logPath);
+                    var file = File.ReadAllLines(LogPath);
                     var lineArray = file.ToList();
                     var amountToCull = (int)(lineArray.Count - keepLines);
                     var trimmed = lineArray.Skip(amountToCull).ToList();
-                    File.WriteAllLines(_logPath, trimmed);
+                    File.WriteAllLines(LogPath, trimmed);
                 }
 
             }
@@ -77,7 +77,7 @@ namespace TennisHighlights.Utils
 
             lock (_logLock)
             {
-                using (var writer = File.AppendText(_logPath))
+                using (var writer = File.AppendText(LogPath))
                 {
                     writer.WriteLine(formattedMessage);
                 }
