@@ -17,7 +17,7 @@ namespace TennisHighlights
         /// <summary>
         /// The buffer size, the number of frames that can be loaded in memory waiting to be extracted
         /// </summary>
-        public const int BufferSize = 400;
+        private readonly int _bufferSize;
         /// <summary>
         /// The video information
         /// </summary>
@@ -25,7 +25,7 @@ namespace TennisHighlights
         /// <summary>
         /// The target size
         /// </summary>
-        public readonly OpenCvSharp.Size TargetSize;
+        public readonly Size TargetSize;
         /// <summary>
         /// The video capture
         /// </summary>
@@ -81,10 +81,12 @@ namespace TennisHighlights
         /// <param name="filePath">The file path.</param>
         /// <param name="targetSize">Size of the target.</param>
         /// <param name="videoInfo">The video information.</param>
-        public VideoFrameExtractor(string filePath, OpenCvSharp.Size targetSize, VideoInfo videoInfo)
+        /// <param name="bufferSize">Size of the buffer.</param>
+        public VideoFrameExtractor(string filePath, Size targetSize, VideoInfo videoInfo, int bufferSize)
         {
             VideoInfo = videoInfo;
 
+            _bufferSize = bufferSize;
             _frameCache = new BusyMat[VideoInfo.TotalFrames];
 
             if (targetSize.Height != VideoInfo.Height)
@@ -135,7 +137,7 @@ namespace TennisHighlights
 
                     var freeWorker = _workers.FirstOrDefault(w => !w.IsBusy);
 
-                    while (freeWorker == null || _cacheUsedSize > BufferSize)
+                    while (freeWorker == null || _cacheUsedSize > _bufferSize)
                     {
                         await Task.Delay(200);
 

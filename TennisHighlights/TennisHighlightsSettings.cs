@@ -1,4 +1,5 @@
-﻿using OpenCvSharp;
+﻿using Microsoft.VisualBasic.Devices;
+using OpenCvSharp;
 using System;
 using System.IO;
 using System.Reflection;
@@ -20,6 +21,7 @@ namespace TennisHighlights
         public const string BallDetectionSettings = "BallDetectionSettings";
         public const string BackgroundExtractionSettings = "BackgroundExtractionSettings";
 
+        public const string LowMemoryMode = "LowMemoryMode";
         public const string AnalysedVideoPath = "AnalysedVideoPath";
         public const string DrawGizmos = "DrawGizmos";
         public const string RegenerateFrames = "RegenerateFrames";
@@ -97,6 +99,10 @@ namespace TennisHighlights
         /// </summary>
         public bool DrawGizmos { get; }
         /// <summary>
+        /// Gets a value indicating whether [low memory mode].
+        /// </summary>
+        public bool LowMemoryMode { get; set; }
+        /// <summary>
         /// Gets a value indicating whether [automatic join all].
         /// </summary>
         public bool AutoJoinAll { get; set; } = false;
@@ -153,6 +159,9 @@ namespace TennisHighlights
                 AnalysedVideoPath = "";
             }
 
+            var totalGBRam = Convert.ToInt32((new ComputerInfo().TotalPhysicalMemory / (Math.Pow(1024, 3))) + 0.5);
+          
+            LowMemoryMode = generalSettings.GetBoolElementValue(SettingsKeys.LowMemoryMode, totalGBRam < 7);
             DrawGizmos = generalSettings.GetBoolElementValue(SettingsKeys.DrawGizmos, false);
             FilterRalliesByDuration = generalSettings.GetBoolElementValue(SettingsKeys.FilterRalliesByDuration, true);
             CustomStartMinute = generalSettings.GetIntElementValue(SettingsKeys.CustomStartMinute, 0);
@@ -211,6 +220,7 @@ namespace TennisHighlights
             xElement.AddElementWithValue(SettingsKeys.MaxVideoBitrate, MaxVideoBitrate);
             xElement.AddElementWithValue(SettingsKeys.LimitMaxVideoBitrate, LimitMaxVideoBitrate);
             xElement.AddElementWithValue(SettingsKeys.PreciseTrimming, PreciseTrimming);
+            xElement.AddElementWithValue(SettingsKeys.LowMemoryMode, LowMemoryMode);
 
             return xElement;
         }

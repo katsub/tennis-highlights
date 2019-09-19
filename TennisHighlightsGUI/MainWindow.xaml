@@ -129,6 +129,9 @@
                     </StackPanel>
                     <CheckBox IsChecked="{Binding Settings.General.DisableImagePreview}"
                           Content="Disable image preview" />
+                    <CheckBox IsChecked="{Binding Settings.General.LowMemoryMode}"
+                              Content="Low memory mode"
+                              ToolTip="Needed if the used PC has less than 8 GB of RAM."/>
                     <TextBlock FontWeight="Bold"
                            Text="EXPORT SETTINGS" 
                            Margin="0,10,0,0"/>

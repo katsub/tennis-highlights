@@ -32,7 +32,7 @@ namespace TennisHighlights
         /// <summary>
         /// The settings
         /// </summary>
-        private readonly BackgroundExtractionSettings _settings;
+        private readonly TennisHighlightsSettings _settings;
         /// <summary>
         /// The video information
         /// </summary>
@@ -72,9 +72,17 @@ namespace TennisHighlights
         /// </summary>
         private readonly MatOfByte3[] _backgroundCache;
         /// <summary>
+        /// The low memory video frame extractor
+        /// </summary>
+        private readonly LowMemoryVideoFrameExtractor _lowMemoryVideoFrameExtractor;
+        /// <summary>
         /// Gets a value indicating whether this instance has frames left to extract.
         /// </summary>
         private bool _hasFramesLeftToExtract => LastFrameWithBuiltBackground < _lastFrameToExtract;
+        /// <summary>
+        /// The low memory frames
+        /// </summary>
+        private readonly MatOfByte3[] _lowMemoryFrames;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BackgroundExtractor" /> class.
@@ -86,9 +94,17 @@ namespace TennisHighlights
         /// <param name="videoInfo">The video information.</param>
         /// <param name="lastParsedFrame">The last parsed frame.</param>
         /// <param name="lastFrameToExtract">The last frame to extract.</param>
-        public BackgroundExtractor(VideoFrameExtractor frameExtractor, Size targetSize, int startingFrame, BackgroundExtractionSettings settings, VideoInfo videoInfo,
+        /// <param name="lowMemoryMode">if set to <c>true</c> [low memory mode].</param>
+        public BackgroundExtractor(VideoFrameExtractor frameExtractor, Size targetSize, int startingFrame, TennisHighlightsSettings settings, VideoInfo videoInfo,
                                    int lastParsedFrame, int lastFrameToExtract)
         {
+            if (settings.General.LowMemoryMode)
+            {
+                _lowMemoryVideoFrameExtractor = new LowMemoryVideoFrameExtractor(settings.General.AnalysedVideoPath, targetSize, videoInfo);
+                _lowMemoryFrames = Enumerable.Range(0, settings.BackgroundExtraction.NumberOfSamples)
+                                             .Select(f => new MatOfByte3(targetSize.Height, targetSize.Width)).ToArray();
+            }
+
             _lastParsedFrame = lastParsedFrame;
 
             _lastFrameToExtract = lastFrameToExtract;
@@ -96,7 +112,7 @@ namespace TennisHighlights
             _frameExtractor = frameExtractor;
             _settings = settings;
             _size = targetSize;
-            _framesPerBackground = settings.NumberOfSamples * settings.FramesPerSample;
+            _framesPerBackground = settings.BackgroundExtraction.NumberOfSamples * settings.BackgroundExtraction.FramesPerSample;
 
             _backgroundCache = new MatOfByte3[(int)Math.Ceiling((double)videoInfo.TotalFrames / _framesPerBackground)];
 
@@ -273,27 +289,8 @@ namespace TennisHighlights
         /// <exception cref="System.Exception">Sample size must be an odd number</exception>
         private async Task<MatOfByte3> ExtractBackground(int startFrame)
         {
-            MatOfByte3 firstFrame = null;
-
-            //Extractor might begin waiting for a frame that's far away and will throw an exception when the video frame extractor is stopped.
-            //Ideally, this should be able to stop waiting for the frame when the extractor is asked to stop, but it'll need a little refactorization
-            //for that...
-            try
-            {
-                firstFrame = await _frameExtractor.GetFrameAsync(startFrame);
-            }
-            catch
-            {
-                if (!_askedToStop)
-                {
-                    Logger.Log(LogType.Warning, "Could not get frame " + firstFrame + " althought the background extractor was not asked to stop.");
-
-                    return null;
-                }
-            }
-
-            var maxNumberOfSamples = _settings.NumberOfSamples;
-            var framesPerSample = _settings.FramesPerSample;
+            var maxNumberOfSamples = _settings.BackgroundExtraction.NumberOfSamples;
+            var framesPerSample = _settings.BackgroundExtraction.FramesPerSample;
 
             var sampledFrames = new List<MatOfByte3>();
 
@@ -312,7 +309,16 @@ namespace TennisHighlights
 
                 try
                 {
-                    frame = await _frameExtractor.GetFrameAsync(getFrameIndex);
+                    if (_settings.General.LowMemoryMode)
+                    {
+                        _lowMemoryVideoFrameExtractor.GetFrame(getFrameIndex, _lowMemoryFrames[sampledFrames.Count]);
+
+                        frame = _lowMemoryFrames[sampledFrames.Count];
+                    }
+                    else
+                    {
+                        frame = await _frameExtractor.GetFrameAsync(getFrameIndex);
+                    }
                 }
                 catch
                 {
@@ -336,7 +342,7 @@ namespace TennisHighlights
         /// <param name="sampledFrames">The sampled frames.</param>
         private MatOfByte3 BuildBackgroundByClustering(List<MatOfByte3> sampledFrames)
         {
-            var sampleSize = _settings.ClusteringSize;
+            var sampleSize = _settings.BackgroundExtraction.ClusteringSize;
 
             if (sampleSize % 2 == 0) { throw new Exception("Sample size must be an odd number"); }
 
@@ -463,6 +469,14 @@ namespace TennisHighlights
             foreach (var mat in _allocatedMatPool)
             {
                 mat.Dispose();
+            }
+
+            if (_lowMemoryFrames != null)
+            {
+                foreach (var frame in _lowMemoryFrames)
+                {
+                    frame.Dispose();
+                }
             }
         }
     }

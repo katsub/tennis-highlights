@@ -248,8 +248,12 @@ namespace TennisHighlights.ImageProcessing
             }
 
             var i = 0;
+            //The buffer needs to be big enough to store all frames needed for the background, and not leave the frameextractors inactive
+            var bufferSize = _settings.General.LowMemoryMode ? 20
+                                                             : (int) (3d *_settings.BackgroundExtraction.NumberOfSamples 
+                                                                         * _settings.BackgroundExtraction.FramesPerSample);
 
-            using (_frameExtractor = new VideoFrameExtractor(_settings.General.AnalysedVideoPath, _targetSize, _videoInfo))
+            using (_frameExtractor = new VideoFrameExtractor(_settings.General.AnalysedVideoPath, _targetSize, _videoInfo, bufferSize))
             {
                 _frameExtractor.ExtractFramesInBackgroundTask();
 
@@ -257,7 +261,7 @@ namespace TennisHighlights.ImageProcessing
 
                 var initialFrame = _settings.General.GetFirstFrameToProcess(_videoInfo);
 
-                using (_backgroundExtractor = new BackgroundExtractor(_frameExtractor, _targetSize, initialFrame, _settings.BackgroundExtraction, _videoInfo,
+                using (_backgroundExtractor = new BackgroundExtractor(_frameExtractor, _targetSize, initialFrame, _settings, _videoInfo,
                                                                       lastParsedFrame, lastFrame))
                 {
                     _backgroundExtractor.ExtractBackgroundsInBackgroundTask();
