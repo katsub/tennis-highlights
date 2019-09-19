@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualBasic.Devices;
-using OpenCvSharp;
+﻿using OpenCvSharp;
 using System;
 using System.IO;
 using System.Reflection;
@@ -159,9 +158,7 @@ namespace TennisHighlights
                 AnalysedVideoPath = "";
             }
 
-            var totalGBRam = Convert.ToInt32((new ComputerInfo().TotalPhysicalMemory / (Math.Pow(1024, 3))) + 0.5);
-          
-            LowMemoryMode = generalSettings.GetBoolElementValue(SettingsKeys.LowMemoryMode, totalGBRam < 7);
+            LowMemoryMode = generalSettings.GetBoolElementValue(SettingsKeys.LowMemoryMode, true);
             DrawGizmos = generalSettings.GetBoolElementValue(SettingsKeys.DrawGizmos, false);
             FilterRalliesByDuration = generalSettings.GetBoolElementValue(SettingsKeys.FilterRalliesByDuration, true);
             CustomStartMinute = generalSettings.GetIntElementValue(SettingsKeys.CustomStartMinute, 0);
