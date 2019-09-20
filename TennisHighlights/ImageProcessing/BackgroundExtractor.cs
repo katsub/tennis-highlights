@@ -355,35 +355,35 @@ namespace TennisHighlights
             //And I recall seeing in the profiler that GetIndexer() was kinda slow
             var sampledFramesIndexers = sampledFrames.Select(s => s.GetIndexer()).ToList();
 
-            //We build small patches of sampleSize we clusterize each one of them, in order to pick only the frames where that patch didn't have any
-            //movement on it
-            for (int x = 0; x < _size.Height; x += sampleSize)
+            using (var samplesMat = new MatOfFloat(sampledFrames.Count, 3))
+            using (var resultMat = new MatOfByte())
             {
-                for (int y = 0; y < _size.Width; y += sampleSize)
+                var samplesIndexer = samplesMat.GetIndexer();
+
+                //We build small patches of sampleSize we clusterize each one of them, in order to pick only the frames where that patch didn't have any
+                //movement on it
+                for (int x = 0; x < _size.Height; x += sampleSize)
                 {
-                    var centerX = x + halfStep;
-                    var centerY = y + halfStep;
-
-                    if (centerX > _size.Height - 1)
+                    for (int y = 0; y < _size.Width; y += sampleSize)
                     {
-                        centerX = _size.Height - 1;
-                    }
-                    if (centerY > _size.Width - 1)
-                    {
-                        centerY = _size.Width - 1;
-                    }
+                        var centerX = x + halfStep;
+                        var centerY = y + halfStep;
 
-                    var chosenFrameIndex = -1;
+                        if (centerX > _size.Height - 1)
+                        {
+                            centerX = _size.Height - 1;
+                        }
+                        if (centerY > _size.Width - 1)
+                        {
+                            centerY = _size.Width - 1;
+                        }
 
-                    var k = 2;
-                    using (var samplesMat = new MatOfFloat(sampledFrames.Count, 3))
-                    using (var resultMat = new MatOfByte())
-                    {
-                        var samplesIndexer = samplesMat.GetIndexer();
+                        var chosenFrameIndex = -1;
+                        var k = 2;
 
                         for (int i = 0; i < sampledFrames.Count; i++)
                         {
-                            var sampledPixel = sampledFrames[i].Get<Vec3b>(centerX, centerY);
+                            var sampledPixel = sampledFramesIndexers[i][centerX, centerY];
 
                             samplesIndexer[i, 0] = sampledPixel[0];
                             samplesIndexer[i, 1] = sampledPixel[1];
@@ -396,9 +396,9 @@ namespace TennisHighlights
                         //(if there are multiple, one of them could be placed in the background cluster by 'mistake')
                         Cv2.Kmeans(samplesMat, k, resultMat, TermCriteria.Both(5, 0.001), 3, KMeansFlags.PpCenters);
 
-                        Span<int> clusterCounts = stackalloc int[k];
-
                         var resultMatIndexer = resultMat.GetIndexer();
+
+                        Span<int> clusterCounts = stackalloc int[k];
 
                         //Count the number of samples in each cluster
                         for (int p = 0; p < sampledFrames.Count; p++)
@@ -431,21 +431,21 @@ namespace TennisHighlights
                                 break;
                             }
                         }
-                    }
 
-                    var minX = Math.Max(0, centerX - halfStep);
-                    var maxX = Math.Min(_size.Height - 1, centerX + halfStep);
-                    var minY = Math.Max(0, centerY - halfStep);
-                    var maxY = Math.Min(_size.Width - 1, centerY + halfStep);
+                        var minX = Math.Max(0, centerX - halfStep);
+                        var maxX = Math.Min(_size.Height - 1, centerX + halfStep);
+                        var minY = Math.Max(0, centerY - halfStep);
+                        var maxY = Math.Min(_size.Width - 1, centerY + halfStep);
 
-                    var chosenFrameIndexer = sampledFramesIndexers[chosenFrameIndex];
+                        var chosenFrameIndexer = sampledFramesIndexers[chosenFrameIndex];
 
-                    //We write that patch on the final image
-                    for (int ii = minX; ii <= maxX; ii++)
-                    {
-                        for (int jj = minY; jj <= maxY; jj++)
+                        //We write that patch on the final image
+                        for (int ii = minX; ii <= maxX; ii++)
                         {
-                            bgIndexer[ii, jj] = chosenFrameIndexer[ii, jj];
+                            for (int jj = minY; jj <= maxY; jj++)
+                            {
+                                bgIndexer[ii, jj] = chosenFrameIndexer[ii, jj];
+                            }
                         }
                     }
                 }
