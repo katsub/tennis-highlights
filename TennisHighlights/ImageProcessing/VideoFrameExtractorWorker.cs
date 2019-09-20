@@ -1,5 +1,7 @@
 ﻿using OpenCvSharp;
+using System;
 using System.Threading.Tasks;
+using TennisHighlights.Utils;
 
 namespace TennisHighlights.ImageProcessing
 {
@@ -54,21 +56,30 @@ namespace TennisHighlights.ImageProcessing
         {
             Task.Run(() =>
             {
-                if (_videoFrameExtractor.TargetSize != Size.Zero)
+                try
                 {
-                    Cv2.Resize(_mat.Mat, _resizeMat.Mat, _videoFrameExtractor.TargetSize, 0, 0, InterpolationFlags.Nearest);
-                }
+                    if (_videoFrameExtractor.IsResizingFrames)
+                    {
+                        Cv2.Resize(_mat.Mat, _resizeMat.Mat, _videoFrameExtractor.TargetSize, 0, 0, InterpolationFlags.Nearest);
+                    }
 
-                if (_resizeMat == null)
-                {
-                    _videoFrameExtractor.AddFrame(_assignedFrameIndex, _mat, null);
+                    if (_resizeMat == null)
+                    {
+                        _videoFrameExtractor.AddFrame(_assignedFrameIndex, _mat, null);
+                    }
+                    else
+                    {
+                        _videoFrameExtractor.AddFrame(_assignedFrameIndex, _resizeMat, _mat);
+                    }
                 }
-                else
+                catch (Exception e)
                 {
-                    _videoFrameExtractor.AddFrame(_assignedFrameIndex, _resizeMat, _mat);
+                    Logger.Log(LogType.Error, e.ToString());
                 }
-
-                _mat = null;
+                finally
+                {
+                    _mat = null;
+                }
             });
         }
     }

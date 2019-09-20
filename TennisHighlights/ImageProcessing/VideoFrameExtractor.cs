@@ -1,6 +1,7 @@
 ﻿using OpenCvSharp;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -67,6 +68,10 @@ namespace TennisHighlights
         /// Gets the frames loaded.
         /// </summary>
         public int FramesLoaded { get; private set; }
+        /// <summary>
+        /// Gets a value indicating whether this instance is resizing frames.
+        /// </summary>
+        public bool IsResizingFrames { get; }
 
         /// <summary>
         /// The has stopped. Confirms that the extraction has been stopped
@@ -89,7 +94,9 @@ namespace TennisHighlights
             _bufferSize = bufferSize;
             _frameCache = new BusyMat[VideoInfo.TotalFrames];
 
-            if (targetSize.Height != VideoInfo.Height)
+            IsResizingFrames = targetSize.Height != VideoInfo.Height;
+
+            if (IsResizingFrames)
             {
                 _originalSizeFramesToDispose = new BusyMat[VideoInfo.TotalFrames];
             }
@@ -146,14 +153,19 @@ namespace TennisHighlights
 
                     if (_isExtracting)
                     {
-                        var resizeBusyMat = GetResizeMatFromAllocatedMatPool();
+                        BusyMat resizeBusyMat = null;
 
-                        resizeBusyMat.SetBusy();
+                        if (IsResizingFrames)
+                        {
+                            resizeBusyMat = GetResizeMatFromAllocatedMatPool();
+
+                            resizeBusyMat.SetBusy();
+                        }
 
                         //Assign it to a free worker who'll resize it in a separate task if necessary and then add it o the frame cache
                         freeWorker.AssignFrame(i, busyMat, resizeBusyMat);
 
-                        _cacheUsedSize++;
+                        Interlocked.Add(ref _cacheUsedSize, 1); 
                         FramesLoaded++;
 
                         freeWorker.ProcessFrame();
@@ -234,6 +246,10 @@ namespace TennisHighlights
             {
                 _originalSizeFramesToDispose[frameIndex] = originalFrame;
             }
+            else
+            {
+                Contract.Assert(originalFrame == null);
+            }
         }
 
         /// <summary>
@@ -273,10 +289,14 @@ namespace TennisHighlights
                 if (_frameCache[i] != null)
                 {
                     _frameCache[i].FreeForUse();
-                    _originalSizeFramesToDispose[i].FreeForUse();
 
                     _frameCache[i] = null;
-                    _originalSizeFramesToDispose[i] = null;
+
+                    if (_originalSizeFramesToDispose != null)
+                    {
+                        _originalSizeFramesToDispose[i].FreeForUse();
+                        _originalSizeFramesToDispose[i] = null;
+                    }
 
                     removedFrames++;
                 }

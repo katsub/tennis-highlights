@@ -425,7 +425,14 @@ namespace TennisHighlightsGUI
                             return false;
                         }
 
-                        TryToFindFFmpeg();
+                        if (!TryToFindFFmpeg())
+                        {
+                            System.Windows.Application.Current.Shutdown();
+                        }
+                    }
+                    else
+                    {
+                        System.Windows.Application.Current.Shutdown();
                     }
                 }
             }
