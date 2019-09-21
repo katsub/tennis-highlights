@@ -148,7 +148,13 @@
             <MediaElement Name="mePlayer"
                           ScrubbingEnabled="True"
                           Source="{Binding ChosenFileUri}"
-                          LoadedBehavior="Manual" />
+                          LoadedBehavior="Manual">
+                <MediaElement.LayoutTransform>
+                    <TransformGroup>
+                        <RotateTransform Angle="{Binding MainVM.RotationAngle}"/>
+                    </TransformGroup>
+                </MediaElement.LayoutTransform>
+            </MediaElement>
             <StatusBar Grid.Row="1">
                 <StatusBarItem>
                     <TextBlock Text="{Binding CurrentPositionSeconds, StringFormat=hh\\:mm\\:ss, FallbackValue=00:00:00}" />

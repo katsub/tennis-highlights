@@ -24,7 +24,7 @@ namespace TennisHighlightsGUI
         /// <summary>
         /// The timer
         /// </summary>
-        private readonly System.Timers.Timer _timer = new System.Timers.Timer
+        private readonly Timer _timer = new Timer
         {
             Interval = 50,
             // Have the timer fire repeated events (true is the default)
@@ -36,7 +36,7 @@ namespace TennisHighlightsGUI
         /// <summary>
         /// The main view model
         /// </summary>
-        private readonly MainViewModel _mainVM;
+        public MainViewModel MainVM { get; }
         /// <summary>
         /// The video information
         /// </summary>
@@ -366,7 +366,7 @@ namespace TennisHighlightsGUI
         /// <param name="mainVM">The main vm.</param>
         public RallySelectionViewModel(MainViewModel mainVM)
         {
-            _mainVM = mainVM;
+            MainVM = mainVM;
 
             Rallies.CollectionChanged += Rallies_CollectionChanged;
 
@@ -463,15 +463,15 @@ namespace TennisHighlightsGUI
                                                          DeltaFrames, _videoInfo.TotalFrames, _videoInfo.FrameRate);
 
                 Rallies.Insert(selectedRallyIndex, joinedRally);
-                _mainVM.ChosenFileLog.Rallies.Insert(selectedRallyIndex, joinedRally.Data);
+                MainVM.ChosenFileLog.Rallies.Insert(selectedRallyIndex, joinedRally.Data);
 
                 var rallyToRemove = SelectedRally;
                 SelectedRally = joinedRally;
 
                 Rallies.Remove(rallyToRemove);
                 Rallies.Remove(nextRally);
-                _mainVM.ChosenFileLog.Rallies.Remove(rallyToRemove.Data);
-                _mainVM.ChosenFileLog.Rallies.Remove(nextRally.Data);
+                MainVM.ChosenFileLog.Rallies.Remove(rallyToRemove.Data);
+                MainVM.ChosenFileLog.Rallies.Remove(nextRally.Data);
             });
 
             SplitCommand = new Command((param) =>
@@ -498,14 +498,14 @@ namespace TennisHighlightsGUI
 
                 Rallies.Insert(selectedRallyIndex, secondRally);
                 Rallies.Insert(selectedRallyIndex, firstRally);
-                _mainVM.ChosenFileLog.Rallies.Insert(selectedRallyIndex, secondRally.Data);
-                _mainVM.ChosenFileLog.Rallies.Insert(selectedRallyIndex, firstRally.Data);
+                MainVM.ChosenFileLog.Rallies.Insert(selectedRallyIndex, secondRally.Data);
+                MainVM.ChosenFileLog.Rallies.Insert(selectedRallyIndex, firstRally.Data);
 
                 var rallyToRemove = SelectedRally;
                 SelectedRally = firstRally;
 
                 Rallies.Remove(rallyToRemove);
-                _mainVM.ChosenFileLog.Rallies.Remove(rallyToRemove.Data);
+                MainVM.ChosenFileLog.Rallies.Remove(rallyToRemove.Data);
             });
 
             BackToMainCommand = new Command((param) => { SwitchToMainView(); });
@@ -578,16 +578,16 @@ namespace TennisHighlightsGUI
             Pause();
 
             //We're gonna do heavy operations, could lead to out of memory or C++ crash, better save everything before doing so
-            _mainVM.Settings.Save();
-            _mainVM.ChosenFileLog.Save();
+            MainVM.Settings.Save();
+            MainVM.ChosenFileLog.Save();
 
             //Begin conversion
             Task.Run(() =>
             {
                 try
                 {
-                    RallyVideoCreator.BuildVideoWithAllRallies(_mainVM.ChosenFileLog.Clone().Rallies.Where(r => r.IsSelected).ToList(),
-                                                               _mainVM.VideoInfo, _mainVM.Settings.General, out var error, SendProgressInfo, () => RequestedCancel);
+                    RallyVideoCreator.BuildVideoWithAllRallies(MainVM.ChosenFileLog.Clone().Rallies.Where(r => r.IsSelected).ToList(),
+                                                               MainVM.VideoInfo, MainVM.Settings.General, out var error, SendProgressInfo, () => RequestedCancel);
 
                     SendProgressInfo(new ProgressInfo(null, RequestedCancel ? 0 : 100, RequestedCancel ? "Canceled" : "Done", 0d));
                 }
@@ -608,13 +608,13 @@ namespace TennisHighlightsGUI
         /// </summary>
         public void InitializeVideoParameters()
         {
-            ChosenFileUri = new Uri(_mainVM.ChosenFile);
+            ChosenFileUri = new Uri(MainVM.ChosenFile);
 
-            _videoInfo = new VideoInfo(_mainVM.ChosenFile);
+            _videoInfo = new VideoInfo(MainVM.ChosenFile);
 
             Rallies.Clear();
 
-            foreach (var rallyData in _mainVM.ChosenFileLog.Rallies)
+            foreach (var rallyData in MainVM.ChosenFileLog.Rallies)
             {
                 Rallies.Add(new RallyEditViewModel(rallyData, DeltaFrames, _videoInfo.TotalFrames - 1, _videoInfo.FrameRate));
             }
@@ -627,7 +627,7 @@ namespace TennisHighlightsGUI
         {
             new Action(() =>
             {
-                Switcher.Switch(new MainWindow(_mainVM));
+                Switcher.Switch(new MainWindow(MainVM));
             }).ExecuteOnUIThread();
         }
 

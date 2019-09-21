@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TennisHighlights.ImageProcessing;
 
 namespace TennisHighlights.Utils
 {
@@ -17,6 +18,10 @@ namespace TennisHighlights.Utils
         /// Gets or sets the settings.
         /// </summary>
         public static GeneralSettings Settings { get; set; }
+        /// <summary>
+        /// Gets or sets the video info.
+        /// </summary>
+        public static VideoInfo VideoInfo { get; set; }
         /// <summary>
         /// The FFmpeg path
         /// </summary>
@@ -194,7 +199,7 @@ namespace TennisHighlights.Utils
             Directory.CreateDirectory(FileManager.TempDataPath + FileManager.RallyVideosFolder);
             var arguments = "";
             var startPoint = " -ss " + TimeSpan.FromSeconds(startSeconds); ;
-            var inputFile = " -i " + originalFile; ;
+            var inputFile = " -i " + "\"" + originalFile + "\"";
 
             //FFmpeg interprets arguments differently depending on their position: setting the -ss option before the input is fast while setting it
             //before the output ensures precision
@@ -211,11 +216,30 @@ namespace TennisHighlights.Utils
 
             arguments += " -t " + TimeSpan.FromSeconds(stopSeconds - startSeconds);
 
-            //copyinkf is needed so the trimmed video won't be stuck because it was trimmed in section where there was no keyframe
-            var copyingMethod = Settings.CopyNonKeyframes ? " -c:a copy -copyinkf "
-                                                          : " -c:v copy -c:a copy ";
+            arguments += " -c:a copy ";
 
-            arguments += copyingMethod + fileName;
+            if (!Settings.CopyNonKeyframes && Settings.RotationAngles == 0)
+            {
+                arguments += " -c:v copy ";
+            }
+            else
+            {
+                if (Settings.CopyNonKeyframes)
+                {
+                    //copyinkf is needed so the trimmed video won't be stuck because it was trimmed in section where there was no keyframe
+                    arguments += " -copyinkf ";
+                }
+                if (Settings.RotationAngles != 0)
+                {
+                    var cropRect = CropRotationHelper.GetCropCoordinates(Settings.RotationAngles, new OpenCvSharp.Rect(0, 0, VideoInfo.Width, VideoInfo.Height));
+
+                    var vflip = Settings.RotationAngles > 90 ? "vflip," : string.Empty;
+
+                    arguments += " -vf \"" + vflip + "rotate=-" + Settings.RotationAngles + "*PI/180, crop=" + cropRect.Width + ":" + cropRect.Height + ":" + cropRect.X + ":" + cropRect.Y + "\" ";
+                }
+            }
+
+            arguments += " " + fileName + " ";
 
             var taskResult = Call(arguments, askedToStop).Result;
 
@@ -248,7 +272,7 @@ namespace TennisHighlights.Utils
 
             File.WriteAllText(rallyFilePath, ralliesPaths.ToString());
 
-            var arguments = "-f concat -safe 0 -i " + rallyFilePath + videoCodec + " -c:a copy " + resultFilePath;
+            var arguments = "-f concat -safe 0 -i " + rallyFilePath + videoCodec + " -c:a copy " + "\"" + resultFilePath + "\"";
 
             error = Call(arguments, askedToStop).Result.error;
         }

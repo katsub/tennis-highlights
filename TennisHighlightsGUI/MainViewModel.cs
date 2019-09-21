@@ -14,6 +14,7 @@ using TennisHighlights.ImageProcessing;
 using TennisHighlights.Rallies;
 using TennisHighlights.Utils;
 using TennisHighlights.VideoCreation;
+using TennisHighlightsGUI.WPF;
 
 namespace TennisHighlightsGUI
 {
@@ -91,8 +92,29 @@ namespace TennisHighlightsGUI
 
                     VideoInfo = new VideoInfo(ChosenFile);
 
+                    FFmpegCaller.VideoInfo = VideoInfo;
+
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(CanConvert));
+                }
+            }
+        }
+
+        private int _rotationAngle;
+        /// <summary>
+        /// Gets the image angle.
+        /// </summary>
+        public int RotationAngle
+        {
+            get => _rotationAngle;
+            set
+            {
+                if (_rotationAngle != value)
+                {
+                    _rotationAngle = value;
+                    Settings.General.RotationAngles = value;
+
+                    OnPropertyChanged();
                 }
             }
         }

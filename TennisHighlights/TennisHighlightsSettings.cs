@@ -20,6 +20,7 @@ namespace TennisHighlights
         public const string BallDetectionSettings = "BallDetectionSettings";
         public const string BackgroundExtractionSettings = "BackgroundExtractionSettings";
 
+        public const string RotationAngles = "RotationAngles";
         public const string LowMemoryMode = "LowMemoryMode";
         public const string AnalysedVideoPath = "AnalysedVideoPath";
         public const string DrawGizmos = "DrawGizmos";
@@ -49,6 +50,10 @@ namespace TennisHighlights
     /// </summary>
     public class GeneralSettings
     {
+        /// <summary>
+        /// Gets or sets a value indicating the angle for the video rotation.
+        /// </summary>
+        public int RotationAngles { get; set; }
         /// <summary>
         /// Gets or sets a value indicating whether [precise trimming].
         /// </summary>
@@ -158,6 +163,7 @@ namespace TennisHighlights
                 AnalysedVideoPath = "";
             }
 
+            RotationAngles = generalSettings.GetIntElementValue(SettingsKeys.RotationAngles, 0);
             LowMemoryMode = generalSettings.GetBoolElementValue(SettingsKeys.LowMemoryMode, true);
             DrawGizmos = generalSettings.GetBoolElementValue(SettingsKeys.DrawGizmos, false);
             FilterRalliesByDuration = generalSettings.GetBoolElementValue(SettingsKeys.FilterRalliesByDuration, true);
@@ -199,6 +205,7 @@ namespace TennisHighlights
         {
             var xElement = new XElement(SettingsKeys.GeneralSettings);
 
+            xElement.AddElementWithValue(SettingsKeys.RotationAngles, RotationAngles);
             xElement.AddElementWithValue(SettingsKeys.AnalysedVideoPath, AnalysedVideoPath);
             xElement.AddElementWithValue(SettingsKeys.DrawGizmos, DrawGizmos);
             xElement.AddElementWithValue(SettingsKeys.TempDataPath, TempDataPath);

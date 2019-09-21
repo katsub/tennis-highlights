@@ -88,103 +88,119 @@
                     Command="{Binding ChooseOutputFolderCommand}"
                     Content="Output folder..." />
         </Grid>
-        <Image  Grid.Row="1"
-                Source="{Binding PreviewImage}" />
+        <Image Grid.Row="1"
+               Source="{Binding PreviewImage}"
+               Stretch="Uniform">
+            <Image.LayoutTransform>
+                <TransformGroup>
+                    <RotateTransform Angle="{Binding RotationAngle}" />
+                </TransformGroup>
+            </Image.LayoutTransform>
+        </Image>
         <Grid Margin="5,0,5,0"
               Grid.Row="1"
               Grid.Column="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <StackPanel>
                 <StackPanel>
                     <TextBlock FontWeight="Bold"
-                           Text="EXTRACTION SETTINGS" />
+                               Text="EXTRACTION SETTINGS" />
                     <CheckBox IsChecked="{Binding Settings.General.FilterRalliesByDuration}"
-                          Content="Filter rallies by duration" />
+                              Content="Filter rallies by duration" />
                     <StackPanel Orientation="Horizontal">
                         <CheckBox IsChecked="{Binding Settings.General.UseCustomStartFrame}"
-                              Content="Start at " />
+                                  Content="Start at " />
                         <TextBox Width="20"
-                             Height="15"
-                             Padding="0,-2,0,0"
-                             thwpf:NumberOnlyBehaviour.IsEnabled="True"
-                             thwpf:AutoSelectAll.IsEnabled="True"
-                             Text="{Binding Settings.General.CustomStartMinute}" />
+                                 Height="15"
+                                 Padding="0,-2,0,0"
+                                 thwpf:NumberOnlyBehaviour.IsEnabled="True"
+                                 thwpf:AutoSelectAll.IsEnabled="True"
+                                 Text="{Binding Settings.General.CustomStartMinute}" />
                         <TextBlock Text=" minutes"
-                               IsEnabled="{Binding IsConverting, Converter={StaticResource boolToNotBool}}"/>
+                                   IsEnabled="{Binding IsConverting, Converter={StaticResource boolToNotBool}}" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <CheckBox IsChecked="{Binding Settings.General.UseCustomStopFrame}"
-                              Content="Stop at " />
+                                  Content="Stop at " />
                         <TextBox Width="20"
-                             Height="15"
-                             Padding="0,-2,0,0"
-                             thwpf:AutoSelectAll.IsEnabled="True"
-                             thwpf:NumberOnlyBehaviour.IsEnabled="True"
-                             Text="{Binding Settings.General.CustomStopMinute}" />
+                                 Height="15"
+                                 Padding="0,-2,0,0"
+                                 thwpf:AutoSelectAll.IsEnabled="True"
+                                 thwpf:NumberOnlyBehaviour.IsEnabled="True"
+                                 Text="{Binding Settings.General.CustomStopMinute}" />
                         <TextBlock Text=" minutes"
-                               IsEnabled="{Binding IsConverting, Converter={StaticResource boolToNotBool}}"/>
+                                   IsEnabled="{Binding IsConverting, Converter={StaticResource boolToNotBool}}" />
                     </StackPanel>
                     <CheckBox IsChecked="{Binding Settings.General.DisableImagePreview}"
-                          Content="Disable image preview" />
+                              Content="Disable image preview" />
                     <CheckBox IsChecked="{Binding Settings.General.LowMemoryMode}"
                               Content="Low memory mode"
-                              ToolTip="Needed if the used PC has less than 8 GB of RAM."/>
+                              ToolTip="Needed if the used PC has less than 8 GB of RAM." />
                     <TextBlock FontWeight="Bold"
-                           Text="EXPORT SETTINGS" 
-                           Margin="0,10,0,0"/>
+                               Text="EXPORT SETTINGS"
+                               Margin="0,10,0,0" />
                     <CheckBox IsChecked="{Binding Settings.General.AutoJoinAll}"
-                          ToolTip="When conversion is over, automatically joins all rallies and exports them"
-                          Content="Auto join all and export" />
+                              ToolTip="When conversion is over, automatically joins all rallies and exports them"
+                              Content="Auto join all and export" />
                     <CheckBox IsChecked="{Binding Settings.General.CopyNonKeyframes}"
-                          ToolTip="Use this if converted videos freeze for several seconds, it's a lot slower but ensures non keyframe videos get correctly copied"
-                          Content="Copy non keyframes" />
+                              ToolTip="Use this if converted videos freeze for several seconds, it's a lot slower but ensures non keyframe videos get correctly copied"
+                              Content="Copy non keyframes" />
                     <StackPanel Orientation="Horizontal">
                         <CheckBox IsChecked="{Binding Settings.General.LimitMaxVideoBitrate}"
-                              ToolTip="This will reduce the video's quality and its size."
-                              Content="Limit video bitrate: " />
+                                  ToolTip="This will reduce the video's quality and its size."
+                                  Content="Limit video bitrate: " />
                         <TextBox Width="20"
-                             Height="15"
-                             Padding="0,-2,0,0"
-                             ToolTip="This will reduce the video's quality and its size."
-                             thwpf:AutoSelectAll.IsEnabled="True"
-                             thwpf:NumberOnlyBehaviour.IsEnabled="True"
-                             Text="{Binding Settings.General.MaxVideoBitrate}" />
+                                 Height="15"
+                                 Padding="0,-2,0,0"
+                                 ToolTip="This will reduce the video's quality and its size."
+                                 thwpf:AutoSelectAll.IsEnabled="True"
+                                 thwpf:NumberOnlyBehaviour.IsEnabled="True"
+                                 Text="{Binding Settings.General.MaxVideoBitrate}" />
                         <TextBlock Text=" M"
-                               IsEnabled="{Binding IsConverting, Converter={StaticResource boolToNotBool}}" />
+                                   IsEnabled="{Binding IsConverting, Converter={StaticResource boolToNotBool}}" />
                     </StackPanel>
                     <CheckBox IsChecked="{Binding Settings.General.PreciseTrimming}"
-                          ToolTip="This is a lot slower but ensures the video is cut exactly where it was meant to"
-                          Content="Precise trimming" />
+                              ToolTip="This is a lot slower but ensures the video is cut exactly where it was meant to"
+                              Content="Precise trimming" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Rotate: " />
+                        <TextBox Width="30"
+                                 Height="15"
+                                 Padding="0,-2,0,0"
+                                 thwpf:AutoSelectAll.IsEnabled="True"
+                                 thwpf:NumberOnlyBehaviour.IsEnabled="True"
+                                 Text="{Binding RotationAngle, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
                 </StackPanel>
                 <thwpf:ProgressBar ProgressDetails="{Binding ProgressDetails}"
-                               ProgressPercent="{Binding ProgressPercent}"
-                               RemainingSeconds="{Binding RemainingSeconds}"
-                               ElapsedSeconds="{Binding ElapsedSeconds}" />
+                                   ProgressPercent="{Binding ProgressPercent}"
+                                   RemainingSeconds="{Binding RemainingSeconds}"
+                                   ElapsedSeconds="{Binding ElapsedSeconds}" />
                 <StackPanel Margin="0,10,0,0">
                     <Button Margin="0,10,0,0"
-                        Background="LawnGreen"
-                        Visibility="{Binding IsConverting, Converter={StaticResource notBoolToVis}}"
-                        IsEnabled="{Binding CanConvert}"
-                        Command="{Binding ConvertCommand}">
+                            Background="LawnGreen"
+                            Visibility="{Binding IsConverting, Converter={StaticResource notBoolToVis}}"
+                            IsEnabled="{Binding CanConvert}"
+                            Command="{Binding ConvertCommand}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Convert" />
                         </StackPanel>
                     </Button>
                     <Button Margin="0,10,0,0"
-                        Content="Cancel conversion"
-                        Background="OrangeRed"
-                        Style="{StaticResource cancelButton}"
-                        Visibility="{Binding IsConverting, Converter={StaticResource boolToVis}, FallbackValue=Collapsed}"
-                        Command="{Binding CancelConversionCommand}" />
+                            Content="Cancel conversion"
+                            Background="OrangeRed"
+                            Style="{StaticResource cancelButton}"
+                            Visibility="{Binding IsConverting, Converter={StaticResource boolToVis}, FallbackValue=Collapsed}"
+                            Command="{Binding CancelConversionCommand}" />
                 </StackPanel>
                 <StackPanel Margin="0,10,0,0">
                     <Button Content="Regenerate rallies"
-                        Background="Orange"
-                        Visibility="{Binding CanRegenerateRallies, Converter={StaticResource boolToVis}}"
-                        Command="{Binding RegenerateRalliesCommand}" />
+                            Background="Orange"
+                            Visibility="{Binding CanRegenerateRallies, Converter={StaticResource boolToVis}}"
+                            Command="{Binding RegenerateRalliesCommand}" />
                 </StackPanel>
             </StackPanel>
             <Grid Grid.Row="1"
@@ -192,7 +208,7 @@
                 <Button Content="Log"
                         VerticalAlignment="Bottom"
                         Style="{StaticResource cancelButton}"
-                        Command="{Binding OpenLogCommand}" />   
+                        Command="{Binding OpenLogCommand}" />
             </Grid>
         </Grid>
     </Grid>
