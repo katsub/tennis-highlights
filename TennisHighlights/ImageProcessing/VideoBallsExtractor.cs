@@ -108,7 +108,6 @@ namespace TennisHighlights.ImageProcessing
 
             _targetSize = settings.General.GetTargetSize(_videoInfo);
 
-            ResolutionDependentParameter.SetTargetResolutionHeight(_targetSize.Height);
             FrameBallExtractor.AllocateResolutionDependentMats();
 
             _timer = new Timer

@@ -127,11 +127,6 @@ namespace TennisHighlights
                     {
                         var candidateArc = ArcExtractor.GetArc(ballsPerFrame, s, t);
 
-                        if (candidateArc != null)
-                        {
-                            var a = false;
-                        }
-
                         if (candidateArc != null && CheckArcConsistency(candidateArc))
                         {
                             var isNewArc = true;

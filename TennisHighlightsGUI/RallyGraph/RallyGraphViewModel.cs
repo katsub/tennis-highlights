@@ -22,6 +22,14 @@ namespace TennisHighlightsGUI
         DetectedFramesPercentage,
         [Description("Number of arcs")]
         NumberOfArcs,
+        [Description("Average speed per arc")]
+        AverageSpeed,
+        [Description("Top arc speed")]
+        TopSpeed,
+        [Description("Average angles per arc")]
+        AverageAngles,
+        [Description("Top arc angles")]
+        MaxAngles,
     }
 
     /// <summary>
@@ -141,6 +149,14 @@ namespace TennisHighlightsGUI
                     return rally.Arcs.Count;
                 case AxisData.TraveledDistance:
                     return rally.GetBallTotalTravelDistance();
+                case AxisData.AverageAngles:
+                    return rally.Arcs.Sum(a => a.Stats.AverageAngles) / rally.Arcs.Count;
+                case AxisData.MaxAngles:
+                    return rally.Arcs.Max(a => a.Stats.AverageAngles);
+                case AxisData.AverageSpeed:
+                    return rally.Arcs.Sum(a => a.Stats.AverageSpeed) / rally.Arcs.Count;
+                case AxisData.TopSpeed:
+                    return rally.Arcs.Max(a => a.Stats.AverageSpeed);
                 default:
                     return 0d;
             }
@@ -183,36 +199,22 @@ namespace TennisHighlightsGUI
             var minY = _rallyPoints.Min(r => r.y) - yMargin;
 
             // Create two line series (markers are hidden by default)
-            var trueRallies = new ScatterSeries { Title = "True", MarkerFill = OxyColors.Green, MarkerType = MarkerType.Circle };
-            var falseRallies = new ScatterSeries { Title = "False", MarkerFill = OxyColors.Red, MarkerType = MarkerType.Triangle };
-            var partialRallies = new ScatterSeries { Title = "Partial", MarkerFill = OxyColors.Yellow, MarkerType = MarkerType.Circle };
-            var unclassifiedRallies = new ScatterSeries { Title = "Unclassified", MarkerFill = OxyColors.Black, MarkerType = MarkerType.Square };
-
-            foreach (var rally in _rallyPoints.Where(r => r.rally.Class == RallyClass.True))
+            var trueRallies = new ScatterSeries { Title = "Selected", MarkerFill = OxyColors.Green, MarkerType = MarkerType.Circle };
+            var falseRallies = new ScatterSeries { Title = "Not selected", MarkerFill = OxyColors.Red, MarkerType = MarkerType.Triangle };
+     
+            foreach (var rally in _rallyPoints.Where(r => r.rally.WasChosen))
             {
                 trueRallies.Points.Add(new ScatterPoint(rally.x, rally.y));
             }
 
-            foreach (var rally in _rallyPoints.Where(r => r.rally.Class == RallyClass.False))
+            foreach (var rally in _rallyPoints.Where(r => !r.rally.WasChosen))
             {
                 falseRallies.Points.Add(new ScatterPoint(rally.x, rally.y));
-            }
-
-            foreach (var rally in _rallyPoints.Where(r => r.rally.Class == RallyClass.Partial))
-            {
-                partialRallies.Points.Add(new ScatterPoint(rally.x, rally.y));
-            }
-
-            foreach (var rally in _rallyPoints.Where(r => r.rally.Class == RallyClass.Unclassified))
-            {
-                unclassifiedRallies.Points.Add(new ScatterPoint(rally.x, rally.y));
             }
 
             // Add the series to the plot model
             model.Series.Add(trueRallies);
             model.Series.Add(falseRallies);
-            model.Series.Add(partialRallies);
-            model.Series.Add(unclassifiedRallies);
 
             foreach (var series in model.Series)
             {

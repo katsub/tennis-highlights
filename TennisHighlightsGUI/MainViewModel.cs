@@ -14,7 +14,6 @@ using TennisHighlights.ImageProcessing;
 using TennisHighlights.Rallies;
 using TennisHighlights.Utils;
 using TennisHighlights.VideoCreation;
-using TennisHighlightsGUI.WPF;
 
 namespace TennisHighlightsGUI
 {
@@ -37,6 +36,7 @@ namespace TennisHighlightsGUI
         /// </summary>
         public TennisHighlightsSettings Settings { get; private set; }
 
+        #region Commands
         /// <summary>
         /// Gets the open file command.
         /// </summary>
@@ -57,7 +57,9 @@ namespace TennisHighlightsGUI
         /// Gets the regenerate rallies command.
         /// </summary>
         public Command RegenerateRalliesCommand { get; }
+        #endregion
 
+        #region Properties
         private string _outputFolder;
         /// <summary>
         /// Gets or sets the output folder.
@@ -91,6 +93,10 @@ namespace TennisHighlightsGUI
                     _chosenFile = value;
 
                     VideoInfo = new VideoInfo(ChosenFile);
+
+                    var targetSize = Settings.General.GetTargetSize(VideoInfo);
+
+                    ResolutionDependentParameter.SetTargetResolutionHeight(targetSize.Height);
 
                     FFmpegCaller.VideoInfo = VideoInfo;
 
@@ -138,6 +144,7 @@ namespace TennisHighlightsGUI
                 }
             }
         }
+        #endregion
 
         /// <summary>
         /// Gets the video information.
@@ -159,6 +166,11 @@ namespace TennisHighlightsGUI
         public bool CanOpenRallyGraph => !string.IsNullOrEmpty(FileManager.ReadPersistentFile(_rallyClassificationsFileName)) && ChosenFileLog.Balls.Count > 0;
 
         /// <summary>
+        /// Gets a value indicating whether this instance is in debug mode.
+        /// </summary>
+        public bool IsInDebugMode => ConditionalCompilation.Debug;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="MainViewModel"/> class.
         /// </summary>
         public MainViewModel()
@@ -176,10 +188,6 @@ namespace TennisHighlightsGUI
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    var targetSize = Settings.General.GetTargetSize(VideoInfo);
-
-                    ResolutionDependentParameter.SetTargetResolutionHeight(targetSize.Height);
-
                     Task.Run(() =>
                     {
                         try
@@ -205,12 +213,18 @@ namespace TennisHighlightsGUI
 
                 var rallies = TennisHighlightsEngine.GetRalliesFromBalls(Settings, ChosenFileLog.Balls, ChosenFileLog);
 
-                var rallyData = new RallyClassificationData(rallyClassificationsFile, rallies);
+                rallies = FilterRalliesByDuration(rallies);
 
-                /*  var rallyGraphViewModel = new RallyGraphViewModel(rallyData);
-                  var rallyGraphWindow = new RallyGraphWindow(rallyGraphViewModel);
+                if (rallies.Count == ChosenFileLog.Rallies.Count)
+                {
+                    var rallyData = new RallyClassificationData(rallies.Select(r => (r, ChosenFileLog.Rallies[rallies.IndexOf(r)].IsSelected))
+                                                                       .ToList());
 
-                  rallyGraphWindow.Show();*/
+                    var rallyGraphViewModel = new RallyGraphViewModel(rallyData);
+                    var rallyGraphWindow = new RallyGraphWindow(rallyGraphViewModel);
+
+                    rallyGraphWindow.Show();
+                }
             });
 
             OpenFileCommand = new Command((param) =>
@@ -481,17 +495,9 @@ namespace TennisHighlightsGUI
 
             bool cancelRequested() => RequestedCancel;
 
-            var clusterSize = 5;
             var rallies = TennisHighlightsEngine.GetRalliesFromBalls(Settings, ChosenFileLog.Balls, ChosenFileLog, rallyProgressUpdateAction, cancelRequested);
 
-            if (rallies.Count > clusterSize && Settings.General.FilterRalliesByDuration)
-            {
-                var filter = RallyFilter.ScoreByDuration(rallies.ToDictionary(r => r, r => new RallyFilterInfo(rallies.IndexOf(r))), clusterSize);
-
-                var shortDurationClusters = new HashSet<int>(filter.clusters.Clusters.OrderBy(c => c.Centroid[0]).Take(2).Select(c => c.Index));
-
-                rallies = new List<Rally>(filter.rallies.Where(r => !shortDurationClusters.Contains(r.Value.DurationCluster)).Select(r => r.Key));
-            }
+            rallies = FilterRalliesByDuration(rallies);
 
             ChosenFileLog.Rallies.Clear();
 
@@ -509,6 +515,25 @@ namespace TennisHighlightsGUI
             }
 
             SendProgressInfo("Built rally " + rallies.Count, 100, elapsedTime + stopwatch.Elapsed.TotalSeconds);
+        }
+
+        /// <summary>
+        /// Filters the duration of the rallies by.
+        /// </summary>
+        /// <param name="rallies">The rallies.</param>
+        private List<Rally> FilterRalliesByDuration(List<Rally> rallies)
+        {
+            var clusterSize = 5;
+
+            if (rallies.Count > clusterSize && Settings.General.FilterRalliesByDuration)
+            {
+                var filter = RallyFilter.ScoreByDuration(rallies.ToDictionary(r => r, r => new RallyFilterInfo(rallies.IndexOf(r))), clusterSize);
+                var shortDurationClusters = new HashSet<int>(filter.clusters.Clusters.OrderBy(c => c.Centroid[0]).Take(2).Select(c => c.Index));
+
+                return new List<Rally>(filter.rallies.Where(r => !shortDurationClusters.Contains(r.Value.DurationCluster)).Select(r => r.Key));
+            }
+
+            return new List<Rally>(rallies);
         }
 
         /// <summary>
