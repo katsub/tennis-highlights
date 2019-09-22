@@ -392,9 +392,9 @@ namespace TennisHighlightsGUI
                     rallyPath = saveFileDialog.FileName;
 
                     Task.Run(() =>
-                    {
-                        FFmpegCaller.TrimRallyFromAnalysedFile(rallyPath, rally.Start / videoInfo.FrameRate,
-                                                                          rally.Stop / videoInfo.FrameRate, settings.AnalysedVideoPath, out var error, () => RequestedCancel);
+                    { 
+                        FFmpegCaller.ExportRally(rallyPath, rally.Start / videoInfo.FrameRate,
+                                                 rally.Stop / videoInfo.FrameRate, settings.AnalysedVideoPath, out var error, () => RequestedCancel);
 
                         Process.Start("explorer.exe", FileManager.TempDataPath);
                     });

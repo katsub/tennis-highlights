@@ -186,6 +186,34 @@ namespace TennisHighlights.Utils
         }
 
         /// <summary>
+        /// Exports the file.
+        /// </summary>
+        /// <param name="fileName">Name of the file.</param>
+        /// <param name="startSeconds">The start seconds.</param>
+        /// <param name="stopSeconds">The stop seconds.</param>
+        /// <param name="originalFile">The original file.</param>
+        /// <param name="error">The error.</param>
+        /// <param name="askedToStop">The asked to stop.</param>
+        public static bool ExportRally(string fileName, double startSeconds, double stopSeconds, string originalFile, out string error, Func<bool> askedToStop = null)
+        {
+            if (TrimRallyFromAnalysedFile(fileName, startSeconds, stopSeconds, originalFile, out error, askedToStop))
+            {
+                if (Settings.RotationAngles > 0)
+                {
+                    RotateSingleVideo(fileName, out var error2);
+
+                    File.Delete(fileName);
+
+                    error += error2;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Trims the rally from analysed file.
         /// </summary>
         /// <param name="fileName">Name of the file.</param>
@@ -217,28 +245,7 @@ namespace TennisHighlights.Utils
             arguments += " -t " + TimeSpan.FromSeconds(stopSeconds - startSeconds);
 
             arguments += " -c:a copy ";
-
-            if (!Settings.CopyNonKeyframes && Settings.RotationAngles == 0)
-            {
-                arguments += " -c:v copy ";
-            }
-            else
-            {
-                if (Settings.CopyNonKeyframes)
-                {
-                    //copyinkf is needed so the trimmed video won't be stuck because it was trimmed in section where there was no keyframe
-                    arguments += " -copyinkf ";
-                }
-                if (Settings.RotationAngles != 0)
-                {
-                    var cropRect = CropRotationHelper.GetCropCoordinates(Settings.RotationAngles, new OpenCvSharp.Rect(0, 0, VideoInfo.Width, VideoInfo.Height));
-
-                    var vflip = Settings.RotationAngles > 90 ? "vflip," : string.Empty;
-
-                    arguments += " -vf \"" + vflip + "rotate=-" + Settings.RotationAngles + "*PI/180, crop=" + cropRect.Width + ":" + cropRect.Height + ":" + cropRect.X + ":" + cropRect.Y + "\" ";
-                }
-            }
-
+            arguments += Settings.CopyNonKeyframes ? " -copyinkf " : " -c:v copy ";
             arguments += " " + fileName + " ";
 
             var taskResult = Call(arguments, askedToStop).Result;
@@ -265,16 +272,58 @@ namespace TennisHighlights.Utils
                 ralliesPaths.AppendLine("file '" + rally + "'");
             }
 
-            var limitBitrateConfig = Settings.LimitMaxVideoBitrate && Settings.MaxVideoBitrate > 0 ? " -b:v " + Settings.MaxVideoBitrate + "M"
-                                                                                                   : string.Empty;
-
-            var videoCodec = string.IsNullOrEmpty(limitBitrateConfig) ? " -c:v copy " : limitBitrateConfig;
+            var videoCodec = Settings.LimitMaxVideoBitrate && Settings.MaxVideoBitrate > 0 ? " -b:v " + Settings.MaxVideoBitrate + "M "
+                                                                                           : " -c:v copy ";
 
             File.WriteAllText(rallyFilePath, ralliesPaths.ToString());
 
             var arguments = "-f concat -safe 0 -i " + rallyFilePath + videoCodec + " -c:a copy " + "\"" + resultFilePath + "\"";
 
             error = Call(arguments, askedToStop).Result.error;
+
+            if (Settings.RotationAngles != 0)
+            {
+                RotateSingleVideo(resultFilePath, out var error2, true);
+
+                error += error2;
+
+                File.Delete(resultFilePath);
+            }
+        }
+
+        /// <summary>
+        /// Rotates the single video.
+        /// </summary>
+        /// <param name="fileToRotate">The file to rotate.</param>
+        /// <param name="error">The error.</param>
+        /// <param name="calledFromJoin">if set to <c>true</c> [called from join].</param>
+        public static void RotateSingleVideo(string fileToRotate, out string error, bool calledFromJoin = false)
+        {
+            var inputFileArguments = " -i " + "\"" + fileToRotate + "\"";
+
+            var inputFileName = fileToRotate.Substring(0, fileToRotate.Length - 4);
+
+            var cropRect = CropRotationHelper.GetCropCoordinates(Settings.RotationAngles, new OpenCvSharp.Rect(0, 0, VideoInfo.Width, VideoInfo.Height));
+
+            //For some reason FFmpeg won't rotate more than 90 degrees, vflip is needed to it actually turns upside down
+            var vflip = Settings.RotationAngles > 90 ? "vflip," : string.Empty;
+            var angleSign = Settings.RotationAngles > 90 ? "-" : string.Empty;
+
+            //For reasons I have yet to understand, when called from join, it doesn't need vlip or angleSign
+            if (calledFromJoin)
+            {
+                vflip = string.Empty;
+                angleSign = string.Empty;
+            }
+
+            var videoCodec = " -vf \"" + vflip + "rotate=" + angleSign + Settings.RotationAngles + "*PI/180, crop=" + cropRect.Width + ":" + cropRect.Height + ":" + cropRect.X + ":" + cropRect.Y + "\" ";
+
+            var outputFile = FileManager.GetUnusedFilePathInFolderFromFileName(inputFileName + "_rotated.mp4",
+                                                                               FileManager.TempDataPath, ".mp4");
+
+            var arguments = inputFileArguments + videoCodec + "\"" + outputFile + "\"";
+
+            error = Call(arguments).Result.error;
         }
     }
 }
