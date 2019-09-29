@@ -15,7 +15,7 @@ The objective of this project is to remove the most downtime possible from tenni
   
 # Installing
 
-You can download the latest version of the program [here](https://github.com/katsub/tennis-highlights/releases/download/1.0/TennisHighlights.zip)
+You can download the latest version of the program [here](https://github.com/katsub/tennis-highlights/releases/download/1.10/TennisHighlights.zip)
 
 You'll also need the FFmpeg executable in order to export the videos, you can download the last version [here](https://ffmpeg.zeranoe.com/builds/)
 
