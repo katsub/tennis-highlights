@@ -246,7 +246,7 @@ namespace TennisHighlights.Utils
 
             arguments += " -c:a copy ";
             arguments += Settings.CopyNonKeyframes ? " -copyinkf " : " -c:v copy ";
-            arguments += " " + fileName + " ";
+            arguments += " \"" + fileName + "\" ";
 
             var taskResult = Call(arguments, askedToStop).Result;
 
@@ -277,7 +277,7 @@ namespace TennisHighlights.Utils
 
             File.WriteAllText(rallyFilePath, ralliesPaths.ToString());
 
-            var arguments = "-f concat -safe 0 -i " + rallyFilePath + videoCodec + " -c:a copy " + "\"" + resultFilePath + "\"";
+            var arguments = "-f concat -safe 0 -i \"" + rallyFilePath + "\"" + videoCodec + " -c:a copy " + "\"" + resultFilePath + "\"";
 
             error = Call(arguments, askedToStop).Result.error;
 

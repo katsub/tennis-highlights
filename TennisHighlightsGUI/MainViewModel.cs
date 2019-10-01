@@ -106,18 +106,16 @@ namespace TennisHighlightsGUI
             }
         }
 
-        private int _rotationAngle;
         /// <summary>
         /// Gets the image angle.
         /// </summary>
         public int RotationAngle
         {
-            get => _rotationAngle;
+            get => Settings.General.RotationAngles;
             set
             {
-                if (_rotationAngle != value)
+                if (Settings.General.RotationAngles != value)
                 {
-                    _rotationAngle = value;
                     Settings.General.RotationAngles = value;
 
                     OnPropertyChanged();
