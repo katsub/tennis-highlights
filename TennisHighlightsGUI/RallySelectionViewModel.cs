@@ -109,6 +109,8 @@ namespace TennisHighlightsGUI
 
                     _player.SpeedRatio = _playSpeed;
 
+                    MainVM.Settings.General.RallyPlaySpeed = _playSpeed;
+
                     OnPropertyChanged();
                 }
             }
@@ -787,6 +789,13 @@ namespace TennisHighlightsGUI
         public void SetPlayer(MediaElement player, WitMultiRangeSlider multiSlider)
         {
             _player = player;
+
+            PlaySpeed = MainVM.Settings.General.RallyPlaySpeed;
+
+            //If the play speed was already at the settings value, we have to manually set the player speed, because
+            //the code from play speed set {} won't be called.
+            _player.SpeedRatio = PlaySpeed;
+
             _multiSlider = multiSlider;
 
             if (Rallies.Any())

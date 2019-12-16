@@ -63,6 +63,17 @@ namespace TennisHighlights
         }
 
         /// <summary>
+        /// Gets the double element value.
+        /// </summary>
+        /// <param name="xElement">The x element.</param>
+        /// <param name="elementName">Name of the element.</param>
+        /// <param name="defaultValue">The default value.</param>
+        public static double GetDoubleElementValue(this XElement xElement, string elementName, double defaultValue = 0d)
+        {
+            return double.TryParse(xElement.Element(elementName)?.Attribute("Value").Value, out var result) ? result : defaultValue;
+        }
+
+        /// <summary>
         /// Gets the bool element value.
         /// </summary>
         /// <param name="xElement">The x element.</param>

@@ -260,7 +260,9 @@ namespace TennisHighlights.Utils
         /// </summary>
         /// <param name="resultFilePath">The result file path.</param>
         /// <param name="askedToStop">The asked to stop.</param>
-        public static void JoinAllRallyVideos(string resultFilePath, out string error, Func<bool> askedToStop = null)
+        /// <param name="beganRotationProgressUpdate">The progress update to be fired when the rotated video is created.</param>
+        public static void JoinAllRallyVideos(string resultFilePath, out string error, Func<bool> askedToStop = null,
+                                              Action beganRotationProgressUpdate = null)
         {
             var rallyFolderPath = FileManager.TempDataPath + FileManager.RallyVideosFolder + "\\";
             var rallyFilePath = rallyFolderPath + "rallies.txt";
@@ -283,6 +285,8 @@ namespace TennisHighlights.Utils
 
             if (Settings.RotationAngles != 0)
             {
+                beganRotationProgressUpdate?.Invoke();
+
                 RotateSingleVideo(resultFilePath, out var error2, true);
 
                 error += error2;

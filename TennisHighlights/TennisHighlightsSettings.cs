@@ -43,6 +43,7 @@ namespace TennisHighlights
         public const string MaxVideoBitrate = "MaxVideoBitrate";
         public const string LimitMaxVideoBitrate = "LimitMaxVideoBitrate";
         public const string PreciseTrimming = "PreciseTrimming";
+        public const string RallyPlaySpeed = "RallyPlaySpeed";
     }
 
     /// <summary>
@@ -54,6 +55,10 @@ namespace TennisHighlights
         /// Gets or sets a value indicating the angle for the video rotation.
         /// </summary>
         public int RotationAngles { get; set; }
+        /// <summary>
+        /// Gets or sets the rally play speed (used when watching rallies for selecting them).
+        /// </summary>
+        public double RallyPlaySpeed { get; set; }
         /// <summary>
         /// Gets or sets a value indicating whether [precise trimming].
         /// </summary>
@@ -182,6 +187,7 @@ namespace TennisHighlights
             MaxVideoBitrate = generalSettings.GetIntElementValue(SettingsKeys.MaxVideoBitrate, 2);
             FFmpegPath = generalSettings.GetStringElementValue(SettingsKeys.FFmpegPath);
             PreciseTrimming = generalSettings.GetBoolElementValue(SettingsKeys.PreciseTrimming, true);
+            RallyPlaySpeed = generalSettings.GetDoubleElementValue(SettingsKeys.RallyPlaySpeed, 1d);
 
             if (!File.Exists(FFmpegPath))
             {
@@ -224,6 +230,7 @@ namespace TennisHighlights
             xElement.AddElementWithValue(SettingsKeys.MaxVideoBitrate, MaxVideoBitrate);
             xElement.AddElementWithValue(SettingsKeys.LimitMaxVideoBitrate, LimitMaxVideoBitrate);
             xElement.AddElementWithValue(SettingsKeys.PreciseTrimming, PreciseTrimming);
+            xElement.AddElementWithValue(SettingsKeys.RallyPlaySpeed, RallyPlaySpeed);
             xElement.AddElementWithValue(SettingsKeys.LowMemoryMode, LowMemoryMode);
 
             return xElement;

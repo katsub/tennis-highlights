@@ -43,11 +43,15 @@ namespace TennisHighlights.VideoCreation
             stopwatch.Start();
 
             var i = 0;
+
+            var rotationEnabled = settings.RotationAngles != 0d;
+            var trimmingStepPercentage = rotationEnabled ? 33d : 50d;
+
             foreach (var rally in rallies)
             {
                 if (gotCanceled?.Invoke() == true) { return; }
 
-                var percent = 50d * i / rallies.Count;
+                var percent = trimmingStepPercentage * i / rallies.Count;
 
                 updateProgressInfo?.Invoke($"Trimming rallies... ({i}/{rallies.Count})", (int)Math.Round(percent), stopwatch.Elapsed.TotalSeconds);
 
@@ -59,14 +63,19 @@ namespace TennisHighlights.VideoCreation
                 i++;
             }
 
-            updateProgressInfo?.Invoke("Joining videos...", 50, stopwatch.Elapsed.TotalSeconds);
+            updateProgressInfo?.Invoke("Joining videos...", (int)trimmingStepPercentage, stopwatch.Elapsed.TotalSeconds);
 
             if (gotCanceled?.Invoke() == true) { return; }
 
             var joinedFilePath = FileManager.GetUnusedFilePathInFolderFromFileName(settings.AnalysedVideoPath.Substring(0, settings.AnalysedVideoPath.Length - 4).ToString() + "_rallies.mp4",
                                                                                    FileManager.TempDataPath, ".mp4");
 
-            FFmpegCaller.JoinAllRallyVideos(joinedFilePath, out error, gotCanceled);
+            void beganProgressUpdate()
+            {
+                updateProgressInfo?.Invoke("Rotating video...", (int)(2d * trimmingStepPercentage), stopwatch.Elapsed.TotalSeconds);
+            }
+
+            FFmpegCaller.JoinAllRallyVideos(joinedFilePath, out error, gotCanceled, beganProgressUpdate);
 
             Process.Start("explorer.exe", FileManager.TempDataPath);
 
