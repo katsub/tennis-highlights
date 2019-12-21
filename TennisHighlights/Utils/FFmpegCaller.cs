@@ -260,9 +260,7 @@ namespace TennisHighlights.Utils
         /// </summary>
         /// <param name="resultFilePath">The result file path.</param>
         /// <param name="askedToStop">The asked to stop.</param>
-        /// <param name="beganRotationProgressUpdate">The progress update to be fired when the rotated video is created.</param>
-        public static void JoinAllRallyVideos(string resultFilePath, out string error, Func<bool> askedToStop = null,
-                                              Action beganRotationProgressUpdate = null)
+        public static void JoinAllRallyVideos(string resultFilePath, out string error, Func<bool> askedToStop = null)
         {
             var rallyFolderPath = FileManager.TempDataPath + FileManager.RallyVideosFolder + "\\";
             var rallyFilePath = rallyFolderPath + "rallies.txt";
@@ -274,8 +272,11 @@ namespace TennisHighlights.Utils
                 ralliesPaths.AppendLine("file '" + rally + "'");
             }
 
-            var videoCodec = Settings.LimitMaxVideoBitrate && Settings.MaxVideoBitrate > 0 ? " -b:v " + Settings.MaxVideoBitrate + "M "
-                                                                                           : " -c:v copy ";
+            var needsReencoding = Settings.LimitMaxVideoBitrate && Settings.MaxVideoBitrate > 0;
+            var needsRotation = Settings.RotationAngles != 0;
+
+            var videoCodec = needsReencoding ? " -b:v " + Settings.MaxVideoBitrate + "M " + (needsRotation ? GetRotationArguments(true) : "")
+                                             : " -c:v copy ";
 
             File.WriteAllText(rallyFilePath, ralliesPaths.ToString());
 
@@ -283,16 +284,36 @@ namespace TennisHighlights.Utils
 
             error = Call(arguments, askedToStop).Result.error;
 
-            if (Settings.RotationAngles != 0)
+            if (needsRotation && !needsReencoding)
             {
-                beganRotationProgressUpdate?.Invoke();
-
                 RotateSingleVideo(resultFilePath, out var error2, true);
 
                 error += error2;
 
                 File.Delete(resultFilePath);
             }
+        }
+
+        /// <summary>
+        /// Gets the rotation arguments.
+        /// </summary>
+        /// <param name="calledFromJoin">True if called from Join, false otherwise</param>
+        public static string GetRotationArguments(bool calledFromJoin = false)
+        {
+            var cropRect = CropRotationHelper.GetCropCoordinates(Settings.RotationAngles, new OpenCvSharp.Rect(0, 0, VideoInfo.Width, VideoInfo.Height));
+
+            //For some reason FFmpeg won't rotate more than 90 degrees, vflip is needed to it actually turns upside down
+            var vflip = Settings.RotationAngles > 90 ? "vflip," : string.Empty;
+            var angleSign = Settings.RotationAngles > 90 ? "-" : string.Empty;
+
+            //For reasons I have yet to understand, when called from join, it doesn't need vlip or angleSign
+            if (calledFromJoin)
+            {
+                vflip = string.Empty;
+                angleSign = string.Empty;
+            }
+
+            return " -vf \"" + vflip + "rotate=" + angleSign + Settings.RotationAngles + "*PI/180, crop=" + cropRect.Width + ":" + cropRect.Height + ":" + cropRect.X + ":" + cropRect.Y + "\" ";
         }
 
         /// <summary>
@@ -307,20 +328,7 @@ namespace TennisHighlights.Utils
 
             var inputFileName = fileToRotate.Substring(0, fileToRotate.Length - 4);
 
-            var cropRect = CropRotationHelper.GetCropCoordinates(Settings.RotationAngles, new OpenCvSharp.Rect(0, 0, VideoInfo.Width, VideoInfo.Height));
-
-            //For some reason FFmpeg won't rotate more than 90 degrees, vflip is needed to it actually turns upside down
-            var vflip = Settings.RotationAngles > 90 ? "vflip," : string.Empty;
-            var angleSign = Settings.RotationAngles > 90 ? "-" : string.Empty;
-
-            //For reasons I have yet to understand, when called from join, it doesn't need vlip or angleSign
-            if (calledFromJoin)
-            {
-                vflip = string.Empty;
-                angleSign = string.Empty;
-            }
-
-            var videoCodec = " -vf \"" + vflip + "rotate=" + angleSign + Settings.RotationAngles + "*PI/180, crop=" + cropRect.Width + ":" + cropRect.Height + ":" + cropRect.X + ":" + cropRect.Y + "\" ";
+            var videoCodec = GetRotationArguments(calledFromJoin);
 
             var outputFile = FileManager.GetUnusedFilePathInFolderFromFileName(inputFileName + "_rotated.mp4",
                                                                                FileManager.TempDataPath, ".mp4");

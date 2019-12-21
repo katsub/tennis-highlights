@@ -405,7 +405,9 @@ namespace TennisHighlightsGUI
 
             IncreaseSpeedCommand = new Command((param) =>
             {
-                if (PlaySpeed < 2.5d)
+                //If the speed is set to over 2x, then after dragging the stop slider, the player plays at regular speed even though
+                //its speed ratio is at 2x+. Why? (not high priority since I don't think playing at 2x+ is very useful)
+                if (PlaySpeed < 2d)
                 {
                     PlaySpeed += 0.25d;
                 }

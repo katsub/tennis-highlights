@@ -9,6 +9,14 @@ namespace TennisHighlightsGUI
     public class RallyEditViewModel : ViewModelBase
     {
         /// <summary>
+        /// The last frame
+        /// </summary>
+        private readonly int _lastFrame;
+        /// <summary>
+        /// The delta frames
+        /// </summary>
+        private readonly int _deltaFrames;
+        /// <summary>
         /// The frame rate
         /// </summary>
         private readonly double _frameRate;
@@ -25,12 +33,12 @@ namespace TennisHighlightsGUI
         /// <summary>
         /// Gets the minimum start.
         /// </summary>
-        public int MinStart { get; }
+        public int MinStart { get; private set; }
 
         /// <summary>
         /// Gets the maximum stop.
         /// </summary>
-        public int MaxStop { get; }
+        public int MaxStop { get; private set; }
 
         /// <summary>
         /// Gets or sets the start.
@@ -43,6 +51,7 @@ namespace TennisHighlightsGUI
                 if (value != Data.Start)
                 {
                     Data.Start = value;
+                    UpdateMinStart();
 
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(DurationSeconds));
@@ -61,6 +70,7 @@ namespace TennisHighlightsGUI
                 if (value != Data.Stop)
                 {
                     Data.Stop = value;
+                    UpdateMaxStop();
 
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(DurationSeconds));
@@ -89,6 +99,13 @@ namespace TennisHighlightsGUI
                 }
             }
         }
+        
+        /// <summary>
+        /// Updates the max stop.
+        /// </summary>
+        private void UpdateMaxStop() => MaxStop = (int)Math.Min(_lastFrame, Data.Stop + _deltaFrames);
+
+        private void UpdateMinStart() => MinStart = (int)Math.Max(0, Data.Start - _deltaFrames);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RallyEditViewModel" /> class.
@@ -103,9 +120,11 @@ namespace TennisHighlightsGUI
 
             Data = rallyEditData;
 
-            MinStart = (int)Math.Max(0, Data.Start - deltaFrames);
+            _deltaFrames = deltaFrames;
+            _lastFrame = lastFrame;
 
-            MaxStop = (int)Math.Min(lastFrame, Data.Stop + deltaFrames);
+            UpdateMinStart();
+            UpdateMaxStop();
         }
     }
 }
