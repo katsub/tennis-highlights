@@ -213,11 +213,16 @@
                 </StackPanel>
             </StackPanel>
             <Grid Grid.Row="1"
-                  Margin="0,0,0,3">
-                <Button Content="Log"
-                        VerticalAlignment="Bottom"
+                  Margin="0,0,0,8">
+                <StackPanel  VerticalAlignment="Bottom">
+                    <Button Content="Join files..."
+                            Margin="0,0,0,8"
+                        Style="{StaticResource cancelButton}"
+                        Command="{Binding JoinFilesCommand}" />
+                    <Button Content="Log"
                         Style="{StaticResource cancelButton}"
                         Command="{Binding OpenLogCommand}" />
+                </StackPanel>
             </Grid>
         </Grid>
     </Grid>

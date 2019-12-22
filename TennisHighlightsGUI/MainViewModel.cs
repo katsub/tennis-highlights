@@ -14,6 +14,7 @@ using TennisHighlights.ImageProcessing;
 using TennisHighlights.Rallies;
 using TennisHighlights.Utils;
 using TennisHighlights.VideoCreation;
+using TennisHighlightsGUI.JoinFiles;
 
 namespace TennisHighlightsGUI
 {
@@ -41,6 +42,10 @@ namespace TennisHighlightsGUI
         /// Gets the open file command.
         /// </summary>
         public Command OpenFileCommand { get; }
+        /// <summary>
+        /// Gets the join files command.
+        /// </summary>
+        public Command JoinFilesCommand { get; }
         /// <summary>
         /// Gets the choose output folder command.
         /// </summary>
@@ -180,6 +185,11 @@ namespace TennisHighlightsGUI
             LoadInitialPreviewImage();
 
             #region Commands
+            JoinFilesCommand = new Command((param) =>
+            {
+                new JoinFilesWindow().Show();
+            });
+
             RegenerateRalliesCommand = new Command((param) =>
             {
                 var result = MessageBox.Show("This will restore all rallies to their original start-stop points from when they were extracted. Are you sure?", "Warning", MessageBoxButton.YesNo);

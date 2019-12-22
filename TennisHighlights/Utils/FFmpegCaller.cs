@@ -256,6 +256,40 @@ namespace TennisHighlights.Utils
         }
 
         /// <summary>
+        /// Joins the files
+        /// </summary>
+        public static string JoinFiles(string resultFilePath, ICollection<string> filePaths)
+        {
+            var joinFilesPath = Path.GetDirectoryName(filePaths.First()) + "\\filesToJoin.txt";
+
+            var joinFilesPaths = new StringBuilder();
+
+            foreach (var fileToJoin in filePaths)
+            {
+                joinFilesPaths.AppendLine("file '" + fileToJoin + "'");
+            }
+
+            File.WriteAllText(joinFilesPath, joinFilesPaths.ToString());
+
+            File.Delete(resultFilePath);
+
+            var arguments = "-f concat -safe 0 -i \"" + joinFilesPath + "\" -c:v copy -c:a copy " + "\"" + resultFilePath + "\"";
+
+            var error = Call(arguments, null).Result.error;
+
+            if (!string.IsNullOrEmpty(error))
+            {
+                Logger.Log(LogType.Error, error);
+
+                return error;
+            }
+
+            File.Delete(joinFilesPath);
+
+            return string.Empty;
+        }
+
+        /// <summary>
         /// Joins all rally videos.
         /// </summary>
         /// <param name="resultFilePath">The result file path.</param>
