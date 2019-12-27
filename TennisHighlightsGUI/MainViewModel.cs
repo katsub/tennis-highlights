@@ -14,7 +14,7 @@ using TennisHighlights.ImageProcessing;
 using TennisHighlights.Rallies;
 using TennisHighlights.Utils;
 using TennisHighlights.VideoCreation;
-using TennisHighlightsGUI.JoinFiles;
+using TennisHighlightsGUI.MultipleFiles;
 
 namespace TennisHighlightsGUI
 {
@@ -27,6 +27,11 @@ namespace TennisHighlightsGUI
         /// The rally classifications file name
         /// </summary>
         private const string _rallyClassificationsFileName = "classifiedRallies.txt";
+
+        /// <summary>
+        /// The multiple files window
+        /// </summary>
+        private MultipleFilesWindow _multipleFilesWindow;
 
         /// <summary>
         /// The rally selection view model
@@ -43,9 +48,9 @@ namespace TennisHighlightsGUI
         /// </summary>
         public Command OpenFileCommand { get; }
         /// <summary>
-        /// Gets the join files command.
+        /// Gets the multiple files command.
         /// </summary>
-        public Command JoinFilesCommand { get; }
+        public Command MultipleFilesCommand { get; }
         /// <summary>
         /// Gets the choose output folder command.
         /// </summary>
@@ -128,6 +133,24 @@ namespace TennisHighlightsGUI
             }
         }
 
+        private bool _beepWhenFinished;
+        /// <summary>
+        /// True if the program should beep when finished
+        /// </summary>
+        public bool BeepWhenFinished
+        {
+            get => _beepWhenFinished;
+            set
+            {
+                if (_beepWhenFinished != value)
+                {
+                    _beepWhenFinished = value;
+
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         private ProcessedFileLog _chosenFileLog;
         /// <summary>
         /// Gets or sets the chosen file log.
@@ -185,9 +208,16 @@ namespace TennisHighlightsGUI
             LoadInitialPreviewImage();
 
             #region Commands
-            JoinFilesCommand = new Command((param) =>
+            MultipleFilesCommand = new Command((param) =>
             {
-                new JoinFilesWindow().Show();
+                if (_multipleFilesWindow == null || !_multipleFilesWindow.IsLoaded)
+                {
+                    _multipleFilesWindow = new MultipleFilesWindow(this);
+                }
+
+                _multipleFilesWindow.WindowState = WindowState.Minimized;
+                _multipleFilesWindow.Show();
+                _multipleFilesWindow.WindowState = WindowState.Normal;
             });
 
             RegenerateRalliesCommand = new Command((param) =>
@@ -306,9 +336,11 @@ namespace TennisHighlightsGUI
                 return;
             }
 
+            //Update the log, it might have been modified by other screens (i.e. multiple files screen converting videos)
+            ChosenFileLog = ProcessedFileLog.GetOrCreateProcessedFileLog(Settings.General);
+
             //We're gonna do heavy operations, could lead to out of memory or C++ crash, better save everything before doing so
             Settings.Save();
-            ChosenFileLog.Save();
 
             //Begin conversion
             var stopwatch = new Stopwatch();
@@ -320,13 +352,6 @@ namespace TennisHighlightsGUI
                 try
                 {
                     var framesToProcess = Settings.General.GetFinalFrameToProcess(VideoInfo);
-
-                    void rallyProgressUpdateAction(int currentRally, int currentBallFrame)
-                    {
-                        var percent = 100d * (double)currentBallFrame / framesToProcess;
-
-                        SendProgressInfo(new ProgressInfo(null, (int)Math.Round(percent), "Built rally " + currentRally + "...", 0d));
-                    }
 
                     if (Settings.General.GetFinalFrameToProcess(VideoInfo) <= ChosenFileLog.LastParsedFrame)
                     {
@@ -383,6 +408,15 @@ namespace TennisHighlightsGUI
                 }
                 finally
                 {
+                    try
+                    {
+                        if (Settings.General.BeepWhenFinished)
+                        {
+                            PlayConversionOverSound();
+                        }
+                    }
+                    catch { }
+
                     IsConverting = false;
                     CancelRequestHandled();
                     OnPropertyChanged(nameof(CanRegenerateRallies));
@@ -559,7 +593,7 @@ namespace TennisHighlightsGUI
         /// Sets the chosen file and load image.
         /// </summary>
         /// <param name="fileName">Name of the file.</param>
-        private void SetChosenFileAndLoadImage(string fileName)
+        public void SetChosenFileAndLoadImage(string fileName)
         {
             //If there's a previous file loaded, we save its edit data before loading a new one
             if (ChosenFileLog != null)

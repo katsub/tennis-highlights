@@ -20,8 +20,8 @@ namespace TennisHighlights.VideoCreation
         /// <param name="error">The error.</param>
         /// <param name="updateProgressInfo">The update progress information.</param>
         /// <param name="gotCanceled">The got canceled.</param>
-        public static void BuildVideoWithAllRallies(List<RallyEditData> rallies, VideoInfo videoInfo, GeneralSettings settings, out string error,
-                                                    Action<string, int, double> updateProgressInfo = null, Func<bool> gotCanceled = null)
+        public static string BuildVideoWithAllRallies(List<RallyEditData> rallies, VideoInfo videoInfo, GeneralSettings settings, out string error,
+                                                      Action<string, int, double> updateProgressInfo = null, Func<bool> gotCanceled = null)
         {
             //Join all rallies that overlap
             for (int j = rallies.Count - 1; j > 0; j--)
@@ -46,7 +46,7 @@ namespace TennisHighlights.VideoCreation
 
             foreach (var rally in rallies)
             {
-                if (gotCanceled?.Invoke() == true) { return; }
+                if (gotCanceled?.Invoke() == true) { return string.Empty; }
 
                 var percent = 50d * i / rallies.Count;
 
@@ -55,24 +55,24 @@ namespace TennisHighlights.VideoCreation
                 //Stop if an error was found
                 var success = FFmpegCaller.TrimRallyFromAnalysedFile(i, rally.Start / videoInfo.FrameRate, rally.Stop / videoInfo.FrameRate, settings.AnalysedVideoPath, out error, gotCanceled);
 
-                if (!success) { return; }
+                if (!success) { return string.Empty; }
 
                 i++;
             }
 
             updateProgressInfo?.Invoke("Joining videos...", 50, stopwatch.Elapsed.TotalSeconds);
 
-            if (gotCanceled?.Invoke() == true) { return; }
+            if (gotCanceled?.Invoke() == true) { return string.Empty; }
 
             var joinedFilePath = FileManager.GetUnusedFilePathInFolderFromFileName(settings.AnalysedVideoPath.Substring(0, settings.AnalysedVideoPath.Length - 4).ToString() + "_rallies.mp4",
                                                                                    FileManager.TempDataPath, ".mp4");
 
             FFmpegCaller.JoinAllRallyVideos(joinedFilePath, out error, gotCanceled);
 
-            Process.Start("explorer.exe", FileManager.TempDataPath);
-
             FileManager.CleanFolder(FileManager.RallyVideosFolder);
             FileManager.DeleteFolder(FileManager.RallyVideosFolder);
+
+            return joinedFilePath;
         }
     }
 }

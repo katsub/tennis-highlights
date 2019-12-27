@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
+using System.Media;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using TennisHighlights.Utils;
@@ -234,6 +236,21 @@ namespace TennisHighlightsGUI
                     progressInfo.PreviewImage.Dispose();
                 }).ExecuteOnUIThread();
             }
+        }
+
+        /// <summary>
+        /// Plays the conversion over sound
+        /// </summary>
+        public void PlayConversionOverSound()
+        {
+            var basePath = System.AppDomain.CurrentDomain.BaseDirectory;
+            var player = new SoundPlayer
+            {
+                SoundLocation = Path.Combine(basePath, @"./ConversionOver.wav")
+            };
+
+            player.Load();
+            player.Play();
         }
 
         /// <summary>

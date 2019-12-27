@@ -77,6 +77,10 @@ namespace TennisHighlights
         /// The has stopped. Confirms that the extraction has been stopped
         /// </summary>
         private bool _hasStopped;
+        /// <summary>
+        /// The zeros
+        /// </summary>
+        private readonly MatOfByte3 _random;
 
         //TODO: use GetFrame() instead of GetFrame(index) so user is forced to get frames in sequence and dispose in sequence (it is already the case
         //but since code is not written intuitively, user may not do this and cause bugs
@@ -90,6 +94,8 @@ namespace TennisHighlights
         public VideoFrameExtractor(string filePath, Size targetSize, VideoInfo videoInfo, int bufferSize)
         {
             VideoInfo = videoInfo;
+
+            _random = new MatOfByte3(videoInfo.Height, videoInfo.Width);
 
             _bufferSize = bufferSize;
             _frameCache = new BusyMat[VideoInfo.TotalFrames];
@@ -135,6 +141,15 @@ namespace TennisHighlights
 
                     //Read a frame into a mat with a busy flag that was not being used
                     _videoCapture.Read(busyMat.Mat);
+
+                    //Video had invalid frame, we add a black frame instead, having the algorithm handle the invalid frame
+                    //correctly would probably be better, but harder to do
+                    if (busyMat.Mat.Size().Width == 0)
+                    {
+                        _random.CopyTo(busyMat.Mat);
+
+                        Logger.Log(LogType.Warning, "Frame " + i + " was invalid.");
+                    }
 
                     if (busyMat.Mat == null)
                     {

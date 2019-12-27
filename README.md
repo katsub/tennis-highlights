@@ -5,7 +5,7 @@ Tennis Highlights is an open-source .NET core application that processes homemad
 It can export all selected rallies to a single video, whose quality can be picked before exporting, so it'll have an appropriate size for sharing it.
 
 How it works:
-  - You pick a video and click on "Convert" so it extracts all rallies (takes a while, about the same time as the video duration or 30% of it, depending on your processor)
+  - You pick a video and click on "Convert" so it extracts all rallies (takes a while, about twice the video duration or 20% of it, depends entirely on your processor)
   - If you checked the "Join all rallies and export" option, the program will automatically build a video with all the rallies it detected and export it, and that's it!
   - If you didn't, it'll take you to the rally selection screen, where you can pick and/or edit the rallies that interest you, and the export them into a single video
   
@@ -21,9 +21,11 @@ You'll also need the FFmpeg executable in order to export the videos, you can do
 
 # Getting Started
 
+Check option "Stop at X minutes" and option "Auto join all and export" for this tutorial.
+
 1. Pick a file to convert and an output folder to store the conversion data with the top screen buttons. Click on "Convert"
 
-2. After a little while (between 2 and 5 minutes), the program should be done and the file explorer should open on the output folder, containing a video with the first 5 minutes of the video you picked, but without the downtime.
+2. After a little while (between 1 and 10 minutes), the program should be done and the file explorer should open on the output folder, containing a video with the first 5 minutes of the video you picked, but without the downtime.
 
 3. That's it! You can now try some things:
     - Untick the "Stop at X minutes" checkbox, so the entire video will be converted

@@ -171,14 +171,24 @@ namespace TennisHighlights
         }
 
         /// <summary>
-        /// Gets the or create processed file log.
+        /// Gets the or create processed file log
         /// </summary>
-        /// <param name="generalSettings">The general settings.</param>
-        public static ProcessedFileLog GetOrCreateProcessedFileLog(GeneralSettings generalSettings)
+        /// <param name="generalSettings">The general settings</param>
+        public static ProcessedFileLog GetOrCreateProcessedFileLog(GeneralSettings settings)
         {
-            if (File.Exists(generalSettings.AnalysedVideoPath))
+            return GetOrCreateProcessedFileLog(settings, settings.AnalysedVideoPath);
+        }
+
+        /// <summary>
+        /// Gets the or create processed file log
+        /// </summary>
+        /// <param name="generalSettings">The general settings</param>
+        /// <param name="analysedVideoPath">The analysed video path</param>
+        public static ProcessedFileLog GetOrCreateProcessedFileLog(GeneralSettings generalSettings, string analysedVideoPath)
+        {
+            if (File.Exists(analysedVideoPath))
             {
-                var currentFileSignature = GetFileSignatureFromFile(generalSettings.AnalysedVideoPath);
+                var currentFileSignature = GetFileSignatureFromFile(analysedVideoPath);
 
                 string processedFileLogPath = null;
 
@@ -196,10 +206,10 @@ namespace TennisHighlights
 
                 if (processedFileLogPath == null)
                 {
-                    var logPath = FileManager.GetUnusedFilePathInFolderFromFileName(generalSettings.AnalysedVideoPath,
+                    var logPath = FileManager.GetUnusedFilePathInFolderFromFileName(analysedVideoPath,
                                                                                     FileManager.PersistentDataPath + _processedFileLogCacheFolder, ".xml");
 
-                    return new ProcessedFileLog(generalSettings.AnalysedVideoPath, logPath);
+                    return new ProcessedFileLog(analysedVideoPath, logPath);
                 }
 
                 return new ProcessedFileLog(processedFileLogPath);

@@ -42,7 +42,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Page Update="JoinFiles\JoinFilesWindow.xaml">
+    <None Update="ConversionOver.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="MultipleFiles\MultipleFilesWindow.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="MainWindow.xaml">

@@ -601,6 +601,15 @@ namespace TennisHighlightsGUI
                 }
                 finally
                 {
+                    try
+                    {
+                        if (MainVM.Settings.General.BeepWhenFinished)
+                        {
+                            PlayConversionOverSound();
+                        }
+                    }
+                    catch { }
+
                     IsConverting = false;
                     CancelRequestHandled();
                 }

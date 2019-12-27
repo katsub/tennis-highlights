@@ -150,6 +150,9 @@
                     <CheckBox IsChecked="{Binding Settings.General.AutoJoinAll}"
                               ToolTip="When conversion is over, automatically joins all rallies and exports them"
                               Content="Auto join all and export" />
+                    <CheckBox IsChecked="{Binding Settings.General.BeepWhenFinished}"
+                              ToolTip="When conversion is over, automatically joins all rallies and exports them"
+                              Content="Beep when finished" />
                     <CheckBox IsChecked="{Binding Settings.General.CopyNonKeyframes}"
                               ToolTip="Use this if converted videos freeze for several seconds, it's a lot slower but ensures non keyframe videos get correctly copied"
                               Content="Copy non keyframes" />
@@ -215,10 +218,10 @@
             <Grid Grid.Row="1"
                   Margin="0,0,0,8">
                 <StackPanel  VerticalAlignment="Bottom">
-                    <Button Content="Join files..."
+                    <Button Content="Multiple files..."
                             Margin="0,0,0,8"
                         Style="{StaticResource cancelButton}"
-                        Command="{Binding JoinFilesCommand}" />
+                        Command="{Binding MultipleFilesCommand}" />
                     <Button Content="Log"
                         Style="{StaticResource cancelButton}"
                         Command="{Binding OpenLogCommand}" />

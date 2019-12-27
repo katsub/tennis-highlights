@@ -15,11 +15,14 @@ namespace TennisHighlights
     {
         public const string Value = "Value";
 
+        public const string MultipleFilesPaths = "MultipleFilesPaths";
         public const string GeneralSettings = "GeneralSettings";
         public const string RallyBuildingSettings = "RallyBuildingSettings";
         public const string BallDetectionSettings = "BallDetectionSettings";
         public const string BackgroundExtractionSettings = "BackgroundExtractionSettings";
 
+        public const string JoinAllConvertedVideosIntoOne = "JoinAllConvertedVideosIntoOne";
+        public const string BeepWhenFinished = "BeepWhenFinished";
         public const string RotationAngles = "RotationAngles";
         public const string LowMemoryMode = "LowMemoryMode";
         public const string AnalysedVideoPath = "AnalysedVideoPath";
@@ -63,6 +66,14 @@ namespace TennisHighlights
         /// Gets or sets a value indicating whether [precise trimming].
         /// </summary>
         public bool PreciseTrimming { get; set; }
+        /// <summary>
+        /// The multiple files paths
+        /// </summary>
+        public string MultipleFilesPaths { get; set; }
+        /// <summary>
+        /// Gets or sets a value indicating whether [join all converted videos into one].
+        /// </summary>
+        public bool JoinAllConvertedVideosIntoOne { get; set; }
         /// <summary>
         /// Gets or sets a value indicating whether [limit maximum video bitrate].
         /// </summary>
@@ -111,6 +122,10 @@ namespace TennisHighlights
         /// Gets a value indicating whether [low memory mode].
         /// </summary>
         public bool LowMemoryMode { get; set; }
+        /// <summary>
+        /// True if the program should beep when the conversion is finished
+        /// </summary>
+        public bool BeepWhenFinished { get; set; }
         /// <summary>
         /// Gets a value indicating whether [automatic join all].
         /// </summary>
@@ -168,6 +183,9 @@ namespace TennisHighlights
                 AnalysedVideoPath = "";
             }
 
+            MultipleFilesPaths = generalSettings.GetStringElementValue(SettingsKeys.MultipleFilesPaths, string.Empty);
+            JoinAllConvertedVideosIntoOne = generalSettings.GetBoolElementValue(SettingsKeys.JoinAllConvertedVideosIntoOne, true);
+            BeepWhenFinished = generalSettings.GetBoolElementValue(SettingsKeys.BeepWhenFinished, false);
             RotationAngles = generalSettings.GetIntElementValue(SettingsKeys.RotationAngles, 0);
             LowMemoryMode = generalSettings.GetBoolElementValue(SettingsKeys.LowMemoryMode, true);
             DrawGizmos = generalSettings.GetBoolElementValue(SettingsKeys.DrawGizmos, false);
@@ -175,9 +193,9 @@ namespace TennisHighlights
             CustomStartMinute = generalSettings.GetIntElementValue(SettingsKeys.CustomStartMinute, 0);
             CustomStopMinute = generalSettings.GetIntElementValue(SettingsKeys.CustomStopMinute, 5);
             UseCustomStartFrame = generalSettings.GetBoolElementValue(SettingsKeys.UseCustomStartFrame, false);
-            UseCustomStopFrame = generalSettings.GetBoolElementValue(SettingsKeys.UseCustomStopFrame, true);
+            UseCustomStopFrame = generalSettings.GetBoolElementValue(SettingsKeys.UseCustomStopFrame, false);
             DisableImagePreview = generalSettings.GetBoolElementValue(SettingsKeys.DisableImagePreview, true);
-            AutoJoinAll = generalSettings.GetBoolElementValue(SettingsKeys.AutoJoinAll, true);
+            AutoJoinAll = generalSettings.GetBoolElementValue(SettingsKeys.AutoJoinAll, false);
             FrameMaxHeight = generalSettings.GetIntElementValue(SettingsKeys.FrameMaxHeight, 720);
             BallExtractionWorkers = generalSettings.GetIntElementValue(SettingsKeys.BallExtractionWorkers, 20);
             FrameExtractionWorkers = generalSettings.GetIntElementValue(SettingsKeys.FrameExtractionWorkers, 10);
@@ -187,7 +205,7 @@ namespace TennisHighlights
             MaxVideoBitrate = generalSettings.GetIntElementValue(SettingsKeys.MaxVideoBitrate, 2);
             FFmpegPath = generalSettings.GetStringElementValue(SettingsKeys.FFmpegPath);
             PreciseTrimming = generalSettings.GetBoolElementValue(SettingsKeys.PreciseTrimming, true);
-            RallyPlaySpeed = generalSettings.GetDoubleElementValue(SettingsKeys.RallyPlaySpeed, 1d);
+            RallyPlaySpeed = generalSettings.GetDoubleElementValue(SettingsKeys.RallyPlaySpeed, 2d);
 
             if (!File.Exists(FFmpegPath))
             {
@@ -211,6 +229,9 @@ namespace TennisHighlights
         {
             var xElement = new XElement(SettingsKeys.GeneralSettings);
 
+            xElement.AddElementWithValue(SettingsKeys.MultipleFilesPaths, MultipleFilesPaths);
+            xElement.AddElementWithValue(SettingsKeys.JoinAllConvertedVideosIntoOne, JoinAllConvertedVideosIntoOne);
+            xElement.AddElementWithValue(SettingsKeys.BeepWhenFinished, BeepWhenFinished);
             xElement.AddElementWithValue(SettingsKeys.RotationAngles, RotationAngles);
             xElement.AddElementWithValue(SettingsKeys.AnalysedVideoPath, AnalysedVideoPath);
             xElement.AddElementWithValue(SettingsKeys.DrawGizmos, DrawGizmos);
