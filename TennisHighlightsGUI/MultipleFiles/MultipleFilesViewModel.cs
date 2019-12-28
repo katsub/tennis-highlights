@@ -106,12 +106,12 @@ namespace TennisHighlightsGUI.MultipleFiles
                 {
                     if (File.Exists(file))
                     {
-                        FilesToProcess.Add(new SingleFileViewModel(file));
+                        FilesToProcess.Add(new SingleFileViewModel(file, GetFileStatus(file)));
                     }
                 }
             }
 
-            RemoveSelectedFileCommand = new Command((param) => 
+            RemoveSelectedFileCommand = new Command((param) =>
             {
                 if (SelectedFile != null)
                 {
@@ -136,7 +136,7 @@ namespace TennisHighlightsGUI.MultipleFiles
 
                 if (openFileDialog.ShowDialog() == true)
                 {
-                    FilesToProcess.Add(new SingleFileViewModel(openFileDialog.FileName));
+                    FilesToProcess.Add(new SingleFileViewModel(openFileDialog.FileName, GetFileStatus(openFileDialog.FileName)));
                 }
             });
 
@@ -235,7 +235,7 @@ namespace TennisHighlightsGUI.MultipleFiles
                         {
                             var framesToProcess = settings.General.GetFinalFrameToProcess(videoInfo);
 
-                            if (settings.General.GetFinalFrameToProcess(videoInfo) > chosenFileLog.LastParsedFrame)
+                            if (framesToProcess > chosenFileLog.LastParsedFrame)
                             {
                                 void progressUpdateAction(Bitmap bitmap, int processedFrame)
                                 {
@@ -255,54 +255,67 @@ namespace TennisHighlightsGUI.MultipleFiles
                                                                             checkIfCancelRequested, progressUpdateAction).GetBallsPerFrame().Result;
 
                                 chosenFileLog.Save();
+
+                                //We update the file status now that it's been converted
+                                file.Status = GetFileStatus(file.FilePath);
                             }
 
-                            if (!RequestedCancel)
+                            if (!RequestedCancel && alsoJoin)
                             {
-                                var rallies = TennisHighlightsEngine.GetRalliesFromBalls(settings, chosenFileLog.Balls, chosenFileLog, null, checkIfCancelRequested);
-
-                                chosenFileLog.Rallies.Clear();
-
-                                var j = 0;
-                                foreach (var rally in rallies)
+                                if (chosenFileLog.Rallies.Count == 0)
                                 {
-                                    var rallyStart = (int)Math.Max(0, rally.FirstBall.FrameIndex - settings.General.SecondsBeforeRally
-                                                                                                   * videoInfo.FrameRate);
+                                    var rallies = TennisHighlightsEngine.GetRalliesFromBalls(settings, chosenFileLog.Balls, chosenFileLog, null, checkIfCancelRequested);
 
-                                    var rallyEnd = (int)Math.Min(videoInfo.TotalFrames, rally.LastBall.FrameIndex + settings.General.SecondsAfterRally
-                                                                                                                    * videoInfo.FrameRate);
+                                    chosenFileLog.Rallies.Clear();
 
-                                    chosenFileLog.Rallies.Add(new RallyEditData(j.ToString()) { Start = rallyStart, Stop = rallyEnd });
-                                    j++;
-                                }
-
-                                chosenFileLog.Save();
-                            }
-
-                            if (!RequestedCancel && chosenFileLog.Rallies.Count > 0 && alsoJoin)
-                            {
-                                //If no rally was selected by default, we export them all, otherwise, we wanna preserve
-                                //the user's selection
-                                if (!chosenFileLog.Rallies.Any(r => r.IsSelected))
-                                {
-                                    foreach (var rally in chosenFileLog.Rallies)
+                                    var j = 0;
+                                    foreach (var rally in rallies)
                                     {
-                                        rally.IsSelected = true;
+                                        var rallyStart = (int)Math.Max(0, rally.FirstBall.FrameIndex - settings.General.SecondsBeforeRally
+                                                                                                       * videoInfo.FrameRate);
+
+                                        var rallyEnd = (int)Math.Min(videoInfo.TotalFrames, rally.LastBall.FrameIndex + settings.General.SecondsAfterRally
+                                                                                                                        * videoInfo.FrameRate);
+
+                                        chosenFileLog.Rallies.Add(new RallyEditData(j.ToString()) { Start = rallyStart, Stop = rallyEnd });
+                                        j++;
                                     }
+
+                                    chosenFileLog.Save();
                                 }
 
-                                var outputFile = RallyVideoCreator.BuildVideoWithAllRallies(chosenFileLog.Clone().Rallies,
-                                                                                            videoInfo, settings.General, out var error, null, 
-                                                                                            () => RequestedCancel);
-
-                                if (!string.IsNullOrEmpty(outputFile))
+                                if (chosenFileLog.Rallies.Count > 0)
                                 {
-                                    outputFiles.Add(outputFile);
-                                }
+                                    //If no rally was selected by default, we export them all, otherwise, we wanna preserve
+                                    //the user's selection
+                                    if (!chosenFileLog.Rallies.Any(r => r.IsSelected))
+                                    {
+                                        foreach (var rally in chosenFileLog.Rallies)
+                                        {
+                                            rally.IsSelected = true;
+                                        }
 
-                                if (!string.IsNullOrEmpty(error))
-                                {
-                                    throw new Exception(error);
+                                        //We update file status to show all rallies selected
+                                        file.Status = GetFileStatus(file.FilePath);
+                                    }
+
+                                    SendProgressInfo("Joining rallies of video #" + i + "...",
+                                                     (int)Math.Round(100d * (0.5d + 1d * i) / FilesToProcess.Count),
+                                                     ElapsedSeconds.TotalSeconds);
+
+                                    var outputFile = RallyVideoCreator.BuildVideoWithAllRallies(chosenFileLog.Clone().Rallies.Where(r => r.IsSelected).ToList(),
+                                                                                                videoInfo, settings.General, chosenFileLog.RotationDegrees, out var error, null,
+                                                                                                () => RequestedCancel);
+
+                                    if (!string.IsNullOrEmpty(outputFile))
+                                    {
+                                        outputFiles.Add(outputFile);
+                                    }
+
+                                    if (!string.IsNullOrEmpty(error))
+                                    {
+                                        throw new Exception(error);
+                                    }
                                 }
                             }
                         }
@@ -353,6 +366,34 @@ namespace TennisHighlightsGUI.MultipleFiles
         }
 
         /// <summary>
+        /// Gets the file status.
+        /// </summary>
+        /// <param name="filePath">The file path.</param>
+        private string GetFileStatus(string filePath)
+        {
+            var status = "";
+            var videoInfo = new VideoInfo(filePath);
+            var chosenFileLog = ProcessedFileLog.GetOrCreateProcessedFileLog(MainVM.Settings.General, filePath);
+
+            try
+            {
+                var framesToProcess = MainVM.Settings.General.GetFinalFrameToProcess(videoInfo);
+
+                if (framesToProcess <= chosenFileLog.LastParsedFrame)
+                {
+                    status = "Converted, " + chosenFileLog.Rallies.Count(r => r.IsSelected) + "/" + chosenFileLog.Rallies.Count + " rallies";
+                }
+                else
+                {
+                    status = "Not converted (" + chosenFileLog.LastParsedFrame + "/" + framesToProcess + ")";
+                }
+            }
+            catch { }
+
+            return status;
+        }
+
+        /// <summary>
         /// Called when processing is started
         /// </summary>
         private void OnProcessingStarted()
@@ -385,7 +426,7 @@ namespace TennisHighlightsGUI.MultipleFiles
             UpdateProgressOver();
 
             OnPropertyChanged(nameof(CanProcessFiles));
-         
+
             UpdateOutputFilePath();
 
             if (MainVM.Settings.General.BeepWhenFinished)
@@ -436,6 +477,6 @@ namespace TennisHighlightsGUI.MultipleFiles
         /// The internal convert.
         /// </summary>
         /// <param name="param"></param>
-        protected override void ConvertInternal(object param) {}
+        protected override void ConvertInternal(object param) { }
     }
 }

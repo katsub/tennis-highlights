@@ -17,10 +17,11 @@ namespace TennisHighlights.VideoCreation
         /// <param name="rallies">The rallies.</param>
         /// <param name="videoInfo">The video information.</param>
         /// <param name="settings">The settings.</param>
+        /// <param name="rotationDegrees">The rotation in degrees.</param>
         /// <param name="error">The error.</param>
         /// <param name="updateProgressInfo">The update progress information.</param>
         /// <param name="gotCanceled">The got canceled.</param>
-        public static string BuildVideoWithAllRallies(List<RallyEditData> rallies, VideoInfo videoInfo, GeneralSettings settings, out string error,
+        public static string BuildVideoWithAllRallies(List<RallyEditData> rallies, VideoInfo videoInfo, GeneralSettings settings, double rotationDegrees, out string error,
                                                       Action<string, int, double> updateProgressInfo = null, Func<bool> gotCanceled = null)
         {
             //Join all rallies that overlap
@@ -67,7 +68,7 @@ namespace TennisHighlights.VideoCreation
             var joinedFilePath = FileManager.GetUnusedFilePathInFolderFromFileName(settings.AnalysedVideoPath.Substring(0, settings.AnalysedVideoPath.Length - 4).ToString() + "_rallies.mp4",
                                                                                    FileManager.TempDataPath, ".mp4");
 
-            FFmpegCaller.JoinAllRallyVideos(joinedFilePath, out error, gotCanceled);
+            FFmpegCaller.JoinAllRallyVideos(joinedFilePath, rotationDegrees, out error, gotCanceled);
 
             FileManager.CleanFolder(FileManager.RallyVideosFolder);
             FileManager.DeleteFolder(FileManager.RallyVideosFolder);

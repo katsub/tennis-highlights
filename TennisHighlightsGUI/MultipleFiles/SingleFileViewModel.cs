@@ -3,17 +3,40 @@
     /// <summary>
     /// The single file view model.
     /// </summary>
-    public class SingleFileViewModel
+    public class SingleFileViewModel : ViewModelBase
     {
         /// <summary>
         /// The file path
         /// </summary>
         public string FilePath { get; }
 
+        private string _status;
+        /// <summary>
+        /// The status
+        /// </summary>
+        public string Status 
+        {
+            get => _status;
+            set
+            {
+                if (_status != value)
+                {
+                    _status = value;
+
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         /// <summary>
         /// Initializes a new instance of the class SingleFileViewModel.
         /// </summary>
         /// <param name="path">The path.</param>
-        public SingleFileViewModel(string path) => FilePath = path;
+        /// <param name="status">The status.</param>
+        public SingleFileViewModel(string path, string status)
+        {
+            FilePath = path;
+            Status = status;
+        }
     }
 }

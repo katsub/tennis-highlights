@@ -9,6 +9,10 @@ namespace TennisHighlightsGUI
     public class RallyEditViewModel : ViewModelBase
     {
         /// <summary>
+        /// The action called when data is modified
+        /// </summary>
+        private readonly Action _onDataModifiedAction;
+        /// <summary>
         /// The last frame
         /// </summary>
         private readonly int _lastFrame;
@@ -95,6 +99,8 @@ namespace TennisHighlightsGUI
                 {
                     Data.IsSelected = value;
 
+                    _onDataModifiedAction();
+
                     OnPropertyChanged();
                 }
             }
@@ -114,9 +120,12 @@ namespace TennisHighlightsGUI
         /// <param name="deltaFrames">The delta frames.</param>
         /// <param name="lastFrame">The last frame.</param>
         /// <param name="frameRate">The frame rate.</param>
-        public RallyEditViewModel(RallyEditData rallyEditData, int deltaFrames, int lastFrame, double frameRate)
+        /// <param name="onDataModifiedAction">The action called when data is modified.</param>
+        public RallyEditViewModel(RallyEditData rallyEditData, int deltaFrames, int lastFrame, double frameRate, Action onDataModifiedAction)
         {
             _frameRate = frameRate;
+
+            _onDataModifiedAction = onDataModifiedAction;
 
             Data = rallyEditData;
 

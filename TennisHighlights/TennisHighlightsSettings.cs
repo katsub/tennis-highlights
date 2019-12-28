@@ -23,7 +23,6 @@ namespace TennisHighlights
 
         public const string JoinAllConvertedVideosIntoOne = "JoinAllConvertedVideosIntoOne";
         public const string BeepWhenFinished = "BeepWhenFinished";
-        public const string RotationAngles = "RotationAngles";
         public const string LowMemoryMode = "LowMemoryMode";
         public const string AnalysedVideoPath = "AnalysedVideoPath";
         public const string DrawGizmos = "DrawGizmos";
@@ -54,10 +53,6 @@ namespace TennisHighlights
     /// </summary>
     public class GeneralSettings
     {
-        /// <summary>
-        /// Gets or sets a value indicating the angle for the video rotation.
-        /// </summary>
-        public int RotationAngles { get; set; }
         /// <summary>
         /// Gets or sets the rally play speed (used when watching rallies for selecting them).
         /// </summary>
@@ -186,7 +181,6 @@ namespace TennisHighlights
             MultipleFilesPaths = generalSettings.GetStringElementValue(SettingsKeys.MultipleFilesPaths, string.Empty);
             JoinAllConvertedVideosIntoOne = generalSettings.GetBoolElementValue(SettingsKeys.JoinAllConvertedVideosIntoOne, true);
             BeepWhenFinished = generalSettings.GetBoolElementValue(SettingsKeys.BeepWhenFinished, false);
-            RotationAngles = generalSettings.GetIntElementValue(SettingsKeys.RotationAngles, 0);
             LowMemoryMode = generalSettings.GetBoolElementValue(SettingsKeys.LowMemoryMode, true);
             DrawGizmos = generalSettings.GetBoolElementValue(SettingsKeys.DrawGizmos, false);
             FilterRalliesByDuration = generalSettings.GetBoolElementValue(SettingsKeys.FilterRalliesByDuration, true);
@@ -232,7 +226,6 @@ namespace TennisHighlights
             xElement.AddElementWithValue(SettingsKeys.MultipleFilesPaths, MultipleFilesPaths);
             xElement.AddElementWithValue(SettingsKeys.JoinAllConvertedVideosIntoOne, JoinAllConvertedVideosIntoOne);
             xElement.AddElementWithValue(SettingsKeys.BeepWhenFinished, BeepWhenFinished);
-            xElement.AddElementWithValue(SettingsKeys.RotationAngles, RotationAngles);
             xElement.AddElementWithValue(SettingsKeys.AnalysedVideoPath, AnalysedVideoPath);
             xElement.AddElementWithValue(SettingsKeys.DrawGizmos, DrawGizmos);
             xElement.AddElementWithValue(SettingsKeys.TempDataPath, TempDataPath);

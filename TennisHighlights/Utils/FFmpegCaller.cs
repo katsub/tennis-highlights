@@ -194,13 +194,14 @@ namespace TennisHighlights.Utils
         /// <param name="originalFile">The original file.</param>
         /// <param name="error">The error.</param>
         /// <param name="askedToStop">The asked to stop.</param>
-        public static bool ExportRally(string fileName, double startSeconds, double stopSeconds, string originalFile, out string error, Func<bool> askedToStop = null)
+        /// <param name="rotationDegrees">The rotation in degrees.</param>
+        public static bool ExportRally(string fileName, double startSeconds, double stopSeconds, string originalFile, double rotationDegrees, out string error, Func<bool> askedToStop = null)
         {
             if (TrimRallyFromAnalysedFile(fileName, startSeconds, stopSeconds, originalFile, out error, askedToStop))
             {
-                if (Settings.RotationAngles > 0)
+                if (rotationDegrees > 0)
                 {
-                    RotateSingleVideo(fileName, out var error2);
+                    RotateSingleVideo(fileName, rotationDegrees, out var error2);
 
                     File.Delete(fileName);
 
@@ -295,9 +296,10 @@ namespace TennisHighlights.Utils
         /// <summary>
         /// Joins all rally videos.
         /// </summary>
+        /// <param name="rotationDegrees">The rotation in degrees.</param>
         /// <param name="resultFilePath">The result file path.</param>
         /// <param name="askedToStop">The asked to stop.</param>
-        public static void JoinAllRallyVideos(string resultFilePath, out string error, Func<bool> askedToStop = null)
+        public static void JoinAllRallyVideos(string resultFilePath, double rotationDegrees, out string error, Func<bool> askedToStop = null)
         {
             var rallyFolderPath = FileManager.TempDataPath + FileManager.RallyVideosFolder + "\\";
             var rallyFilePath = rallyFolderPath + "rallies.txt";
@@ -310,9 +312,9 @@ namespace TennisHighlights.Utils
             }
 
             var needsReencoding = Settings.LimitMaxVideoBitrate && Settings.MaxVideoBitrate > 0;
-            var needsRotation = Settings.RotationAngles != 0;
+            var needsRotation = rotationDegrees != 0;
 
-            var videoCodec = needsReencoding ? " -b:v " + Settings.MaxVideoBitrate + "M " + (needsRotation ? GetRotationArguments(true) : "")
+            var videoCodec = needsReencoding ? " -b:v " + Settings.MaxVideoBitrate + "M " + (needsRotation ? GetRotationArguments(rotationDegrees, true) : "")
                                              : " -c:v copy ";
 
             File.WriteAllText(rallyFilePath, ralliesPaths.ToString());
@@ -323,9 +325,11 @@ namespace TennisHighlights.Utils
 
             error = Call(arguments, askedToStop).Result.error;
 
+            //TODO: rotation should always be done during the join, not reason to do it separetely later
+            //perforamance-wise it won't change much since join without reencoding is fast, but the code will be simpler
             if (needsRotation && !needsReencoding)
             {
-                RotateSingleVideo(resultFilePath, out var error2, true);
+                RotateSingleVideo(resultFilePath, rotationDegrees, out var error2, true);
 
                 error += error2;
 
@@ -336,14 +340,19 @@ namespace TennisHighlights.Utils
         /// <summary>
         /// Gets the rotation arguments.
         /// </summary>
+        /// <param name="rotationDegrees">The rotation in degrees.</param>
         /// <param name="calledFromJoin">True if called from Join, false otherwise</param>
-        public static string GetRotationArguments(bool calledFromJoin = false)
+        public static string GetRotationArguments(double rotationDegrees, bool calledFromJoin = false)
         {
-            var cropRect = CropRotationHelper.GetCropCoordinates(Settings.RotationAngles, new OpenCvSharp.Rect(0, 0, VideoInfo.Width, VideoInfo.Height));
+            //TODO: Accept angles in double: see how to write culture invariant numbers so FFmpeg won't have a problem
+            //depending on the number being written with a dot or a comma
+            var rotationDegreesRounded = (int)Math.Round(rotationDegrees);
+
+            var cropRect = CropRotationHelper.GetCropCoordinates(rotationDegreesRounded, new OpenCvSharp.Rect(0, 0, VideoInfo.Width, VideoInfo.Height));
 
             //For some reason FFmpeg won't rotate more than 90 degrees, vflip is needed to it actually turns upside down
-            var vflip = Settings.RotationAngles > 90 ? "vflip," : string.Empty;
-            var angleSign = Settings.RotationAngles > 90 ? "-" : string.Empty;
+            var vflip = rotationDegreesRounded > 90 ? "vflip," : string.Empty;
+            var angleSign = rotationDegreesRounded > 90 ? "-" : string.Empty;
 
             //For reasons I have yet to understand, when called from join, it doesn't need vlip or angleSign
             if (calledFromJoin)
@@ -352,7 +361,7 @@ namespace TennisHighlights.Utils
                 angleSign = string.Empty;
             }
 
-            return " -max_muxing_queue_size 99999 -vf \"" + vflip + "rotate=" + angleSign + Settings.RotationAngles + "*PI/180, crop=" + cropRect.Width + ":" + cropRect.Height + ":" + cropRect.X + ":" + cropRect.Y + "\" ";
+            return " -max_muxing_queue_size 99999 -vf \"" + vflip + "rotate=" + angleSign + rotationDegreesRounded + "*PI/180, crop=" + cropRect.Width + ":" + cropRect.Height + ":" + cropRect.X + ":" + cropRect.Y + "\" ";
         }
 
         /// <summary>
@@ -360,14 +369,15 @@ namespace TennisHighlights.Utils
         /// </summary>
         /// <param name="fileToRotate">The file to rotate.</param>
         /// <param name="error">The error.</param>
+        /// <param name="rotationDegrees">The rotation in degrees.</param>
         /// <param name="calledFromJoin">if set to <c>true</c> [called from join].</param>
-        public static void RotateSingleVideo(string fileToRotate, out string error, bool calledFromJoin = false)
+        public static void RotateSingleVideo(string fileToRotate, double rotationDegrees, out string error, bool calledFromJoin = false)
         {
             var inputFileArguments = " -i " + "\"" + fileToRotate + "\"";
 
             var inputFileName = fileToRotate.Substring(0, fileToRotate.Length - 4);
 
-            var videoCodec = GetRotationArguments(calledFromJoin);
+            var videoCodec = GetRotationArguments(rotationDegrees, calledFromJoin);
 
             var outputFile = FileManager.GetUnusedFilePathInFolderFromFileName(inputFileName + "_rotated.mp4",
                                                                                FileManager.TempDataPath, ".mp4");

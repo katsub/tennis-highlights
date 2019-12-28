@@ -44,9 +44,9 @@ namespace TennisHighlightsGUI
 
         #region Commands
         /// <summary>
-        /// Gets the open file command.
+        /// Gets the choose file command.
         /// </summary>
-        public Command OpenFileCommand { get; }
+        public Command ChooseFileCommand { get; }
         /// <summary>
         /// Gets the multiple files command.
         /// </summary>
@@ -59,6 +59,10 @@ namespace TennisHighlightsGUI
         /// Gets the open output folder command.
         /// </summary>
         public Command OpenOutputFolderCommand { get; }
+        /// <summary>
+        /// Gets the open chosen file command.
+        /// </summary>
+        public Command OpenChosenFileCommand { get; }
         /// <summary>
         /// Gets the open rally graph command.
         /// </summary>
@@ -121,13 +125,15 @@ namespace TennisHighlightsGUI
         /// </summary>
         public int RotationAngle
         {
-            get => Settings.General.RotationAngles;
+            get => ChosenFileLog?.RotationDegrees ?? 0;
             set
             {
-                if (Settings.General.RotationAngles != value)
+                if (ChosenFileLog != null && ChosenFileLog.RotationDegrees != value)
                 {
-                    Settings.General.RotationAngles = value;
+                    ChosenFileLog.RotationDegrees = value;
 
+                    //Needs to be saved immediately because the multiple file window might use it
+                    ChosenFileLog.Save();
                     OnPropertyChanged();
                 }
             }
@@ -167,6 +173,7 @@ namespace TennisHighlightsGUI
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(CanRegenerateRallies));
                     OnPropertyChanged(nameof(CanOpenRallyGraph));
+                    OnPropertyChanged(nameof(RotationAngle));
                 }
             }
         }
@@ -265,7 +272,7 @@ namespace TennisHighlightsGUI
                 }
             });
 
-            OpenFileCommand = new Command((param) =>
+            ChooseFileCommand = new Command((param) =>
             {
                 var openFileDialog = new OpenFileDialog
                 {
@@ -283,6 +290,14 @@ namespace TennisHighlightsGUI
                 if (!string.IsNullOrEmpty(OutputFolder) && Directory.Exists(OutputFolder))
                 {
                     Process.Start("explorer.exe", OutputFolder);
+                }
+            });
+
+            OpenChosenFileCommand = new Command((param) =>
+            {
+                if (!string.IsNullOrEmpty(ChosenFile) && File.Exists(ChosenFile))
+                {
+                    Process.Start("explorer.exe", ChosenFile);
                 }
             });
 
@@ -437,7 +452,7 @@ namespace TennisHighlightsGUI
                 }
 
                 RallyVideoCreator.BuildVideoWithAllRallies(ChosenFileLog.Clone().Rallies,
-                                                           VideoInfo, Settings.General, out var error, SendProgressInfo, () => RequestedCancel);
+                                                           VideoInfo, Settings.General, ChosenFileLog.RotationDegrees, out var error, SendProgressInfo, () => RequestedCancel);
             }
             else
             {

@@ -53,17 +53,23 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBox Text="{Binding ChosenFile}"
-                     Padding="0,2,0,2"
-                     Margin="0,5,0,0"
-                     Background="LightGray"
-                     IsReadOnly="True"
-                     HorizontalAlignment="Stretch" />
-            <Button Grid.Column="1"
-                    Margin="5,5,0,0"
-                    Padding="2,2,2,2"
-                    Command="{Binding OpenFileCommand}"
-                    Content="Open file..." />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox Text="{Binding ChosenFile}"
+                         Padding="0,2,0,2"
+                         Margin="0,5,0,0"
+                         Background="LightGray"
+                         IsReadOnly="True"
+                         HorizontalAlignment="Stretch" />
+                <Button Grid.Column="1"
+                        Margin="5,5,0,0"
+                        Padding="2,2,2,2"
+                        Command="{Binding ChooseFileCommand}"
+                        Content="Video file..." />
+            </Grid>
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -78,20 +84,25 @@
                 <Button Margin="5,5,0,0"
                         Grid.Column="1"
                         Padding="2,2,2,2"
-                        Command="{Binding OpenOutputFolderCommand}"
-                        Content="Open" />
+                        Command="{Binding ChooseOutputFolderCommand}"
+                        Content="Output folder..." />
             </Grid>
             <Button Grid.Column="1"
                     Grid.Row="1"
                     Margin="5,5,0,0"
                     Padding="2,2,2,2"
-                    Command="{Binding ChooseOutputFolderCommand}"
-                    Content="Output folder..." />
+                    Command="{Binding OpenOutputFolderCommand}"
+                    Content="Open" />
+            <Button Grid.Column="1"
+                    Margin="5,5,0,0"
+                    Padding="2,2,2,2"
+                    Command="{Binding OpenChosenFileCommand}"
+                    Content="Open" />
         </Grid>
         <Grid Grid.Row="1"
               MouseDown="Grid_MouseDown">
             <Image Source="{Binding PreviewImage}"
-               Stretch="Uniform">
+                   Stretch="Uniform">
                 <Image.LayoutTransform>
                     <TransformGroup>
                         <RotateTransform Angle="{Binding RotationAngle}" />
@@ -100,7 +111,10 @@
             </Image>
             <Rectangle  VerticalAlignment="Top"
                         Margin="0,200,0,0"
-                        x:Name="AlignmentLine" HorizontalAlignment="Stretch" Fill="White" Height="2"/>
+                        x:Name="AlignmentLine"
+                        HorizontalAlignment="Stretch"
+                        Fill="White"
+                        Height="2" />
         </Grid>
         <Grid Margin="5,0,5,0"
               Grid.Row="1"
@@ -173,6 +187,9 @@
                     <CheckBox IsChecked="{Binding Settings.General.PreciseTrimming}"
                               ToolTip="This is a lot slower but ensures the video is cut exactly where it was meant to"
                               Content="Precise trimming" />
+                    <TextBlock FontWeight="Bold"
+                               Text="FILE SETTINGS"
+                               Margin="0,10,0,0" />
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Rotate: " />
                         <TextBox Width="30"
@@ -213,20 +230,16 @@
                             Content="Open rally graph"
                             Visibility="{Binding IsInDebugMode, Converter={StaticResource boolToVis}}"
                             Command="{Binding OpenRallyGraphCommand}" />
+                    <Button Content="Multiple files..."
+                            Margin="0,10,0,0"
+                            Style="{StaticResource cancelButton}"
+                            Command="{Binding MultipleFilesCommand}" />
+                    <Button Content="Log"
+                            Margin="0,10,0,0"
+                            Style="{StaticResource cancelButton}"
+                            Command="{Binding OpenLogCommand}" />
                 </StackPanel>
             </StackPanel>
-            <Grid Grid.Row="1"
-                  Margin="0,0,0,8">
-                <StackPanel  VerticalAlignment="Bottom">
-                    <Button Content="Multiple files..."
-                            Margin="0,0,0,8"
-                        Style="{StaticResource cancelButton}"
-                        Command="{Binding MultipleFilesCommand}" />
-                    <Button Content="Log"
-                        Style="{StaticResource cancelButton}"
-                        Command="{Binding OpenLogCommand}" />
-                </StackPanel>
-            </Grid>
         </Grid>
     </Grid>
 </UserControl>

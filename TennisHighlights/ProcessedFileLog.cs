@@ -16,6 +16,7 @@ namespace TennisHighlights
         public const string Name = "Name";
         public const string Size = "Size";
         public const string ModifiedDate = "ModifiedDate";
+        public const string RotationDegrees = "RotationDegrees";
         public const string BallLog = "BallLog";
         public const string RallyLog = "RallyLog";
         public const string Rally = "Rally";
@@ -54,6 +55,11 @@ namespace TennisHighlights
         /// Gets the signature.
         /// </summary>
         public string Signature { get; }
+
+        /// <summary>
+        /// Gets the rotation degrees.
+        /// </summary>
+        public int RotationDegrees { get; set; }
 
         /// <summary>
         /// Gets or sets the last parsed frame.
@@ -119,6 +125,8 @@ namespace TennisHighlights
                     }
 
                     Signature = fileInfo.GetStringElementValue(LogKeys.Signature);
+
+                    RotationDegrees = fileInfo.GetIntElementValue(LogKeys.RotationDegrees);
                 }
 
                 var ballLog = document.Root.Element(LogKeys.BallLog);
@@ -248,6 +256,7 @@ namespace TennisHighlights
             xFileInfo.AddElementWithValue(LogKeys.Size, _size);
             xFileInfo.AddElementWithValue(LogKeys.ModifiedDate, _modifiedDate);
             xFileInfo.AddElementWithValue(LogKeys.Signature, Signature);
+            xFileInfo.AddElementWithValue(LogKeys.RotationDegrees, RotationDegrees);
 
             var xBallLog = new XElement(LogKeys.BallLog, FrameDataSerializer.SerializeBallsPerFrameIntoString(Balls), 
                                                          new XAttribute(LogKeys.LastParsedFrame, LastParsedFrame));

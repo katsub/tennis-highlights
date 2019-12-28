@@ -396,7 +396,7 @@ namespace TennisHighlightsGUI
                     Task.Run(() =>
                     { 
                         FFmpegCaller.ExportRally(rallyPath, rally.Start / videoInfo.FrameRate,
-                                                 rally.Stop / videoInfo.FrameRate, settings.AnalysedVideoPath, out var error, () => RequestedCancel);
+                                                 rally.Stop / videoInfo.FrameRate, settings.AnalysedVideoPath, mainVM.ChosenFileLog.RotationDegrees, out var error, () => RequestedCancel);
 
                         Process.Start("explorer.exe", FileManager.TempDataPath);
                     });
@@ -464,7 +464,7 @@ namespace TennisHighlightsGUI
                     Start = (int)Math.Min(SelectedRally.Start, nextRally.Start),
                     Stop = (int)Math.Max(SelectedRally.Stop, nextRally.Stop)
                 },
-                                                         DeltaFrames, _videoInfo.TotalFrames, _videoInfo.FrameRate);
+                DeltaFrames, _videoInfo.TotalFrames, _videoInfo.FrameRate, () => MainVM.ChosenFileLog.Save());
 
                 Rallies.Insert(selectedRallyIndex, joinedRally);
                 MainVM.ChosenFileLog.Rallies.Insert(selectedRallyIndex, joinedRally.Data);
@@ -489,14 +489,14 @@ namespace TennisHighlightsGUI
                     Start = SelectedRally.Start,
                     Stop = CurrentPosition
                 },
-                DeltaFrames, _videoInfo.TotalFrames, _videoInfo.FrameRate);
+                DeltaFrames, _videoInfo.TotalFrames, _videoInfo.FrameRate, () => MainVM.ChosenFileLog.Save()) ;
 
                 var secondRally = new RallyEditViewModel(new RallyEditData(SelectedRally.OriginalIndex + ".2")
                 {
                     Start = CurrentPosition,
                     Stop = SelectedRally.Stop
                 },
-                DeltaFrames, _videoInfo.TotalFrames, _videoInfo.FrameRate);
+                DeltaFrames, _videoInfo.TotalFrames, _videoInfo.FrameRate, () => MainVM.ChosenFileLog.Save());
 
                 var selectedRallyIndex = Rallies.IndexOf(SelectedRally);
 
@@ -591,7 +591,7 @@ namespace TennisHighlightsGUI
                 try
                 {
                     RallyVideoCreator.BuildVideoWithAllRallies(MainVM.ChosenFileLog.Clone().Rallies.Where(r => r.IsSelected).ToList(),
-                                                               MainVM.VideoInfo, MainVM.Settings.General, out var error, SendProgressInfo, () => RequestedCancel);
+                                                               MainVM.VideoInfo, MainVM.Settings.General, MainVM.ChosenFileLog.RotationDegrees, out var error, SendProgressInfo, () => RequestedCancel);
 
                     SendProgressInfo(new ProgressInfo(null, RequestedCancel ? 0 : 100, RequestedCancel ? "Canceled" : "Done", 0d));
                 }
@@ -627,9 +627,10 @@ namespace TennisHighlightsGUI
 
             Rallies.Clear();
 
+            //We save whenever data is modified in order to not lose progress in case of bugs
             foreach (var rallyData in MainVM.ChosenFileLog.Rallies)
             {
-                Rallies.Add(new RallyEditViewModel(rallyData, DeltaFrames, _videoInfo.TotalFrames - 1, _videoInfo.FrameRate));
+                Rallies.Add(new RallyEditViewModel(rallyData, DeltaFrames, _videoInfo.TotalFrames - 1, _videoInfo.FrameRate, () => MainVM.ChosenFileLog.Save()));
             }
         }
 
