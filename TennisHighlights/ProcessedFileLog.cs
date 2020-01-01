@@ -184,7 +184,7 @@ namespace TennisHighlights
         /// <param name="generalSettings">The general settings</param>
         public static ProcessedFileLog GetOrCreateProcessedFileLog(GeneralSettings settings)
         {
-            return GetOrCreateProcessedFileLog(settings, settings.AnalysedVideoPath);
+            return GetOrCreateProcessedFileLog(settings.AnalysedVideoPath);
         }
 
         /// <summary>
@@ -192,7 +192,7 @@ namespace TennisHighlights
         /// </summary>
         /// <param name="generalSettings">The general settings</param>
         /// <param name="analysedVideoPath">The analysed video path</param>
-        public static ProcessedFileLog GetOrCreateProcessedFileLog(GeneralSettings generalSettings, string analysedVideoPath)
+        public static ProcessedFileLog GetOrCreateProcessedFileLog(string analysedVideoPath)
         {
             if (File.Exists(analysedVideoPath))
             {
@@ -231,6 +231,20 @@ namespace TennisHighlights
         /// </summary>
         public void Save()
         {
+            //Since multiple windows modify that file, we need to check if the file existing on disk is more or less advanced than the one we're
+            //saving. i.e. main window had an empty log but wants to save it since it's changing the selected file, but multiple window had just
+            //saved a fully converted log, which will be erased if we don't do that check
+            if (File.Exists(_logPath))
+            {
+                var existingFileLastParsedFrame = new ProcessedFileLog(_logPath).LastParsedFrame;
+
+                //If existing file has more converted frames, keep it
+                if (LastParsedFrame < existingFileLastParsedFrame)
+                {
+                    return;
+                }
+            }
+
             try
             {
                 File.WriteAllText(_logPath, Serialize());

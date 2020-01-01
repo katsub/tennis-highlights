@@ -223,7 +223,7 @@ namespace TennisHighlightsGUI.MultipleFiles
                         settings.General.AnalysedVideoPath = file.FilePath;
 
                         var videoInfo = new VideoInfo(file.FilePath);
-                        var chosenFileLog = ProcessedFileLog.GetOrCreateProcessedFileLog(MainVM.Settings.General, file.FilePath);
+                        var chosenFileLog = ProcessedFileLog.GetOrCreateProcessedFileLog(file.FilePath);
 
                         var stopwatch = new Stopwatch();
 
@@ -373,7 +373,7 @@ namespace TennisHighlightsGUI.MultipleFiles
         {
             var status = "";
             var videoInfo = new VideoInfo(filePath);
-            var chosenFileLog = ProcessedFileLog.GetOrCreateProcessedFileLog(MainVM.Settings.General, filePath);
+            var chosenFileLog = ProcessedFileLog.GetOrCreateProcessedFileLog(filePath);
 
             try
             {
