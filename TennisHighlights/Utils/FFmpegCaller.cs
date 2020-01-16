@@ -311,11 +311,19 @@ namespace TennisHighlights.Utils
                 ralliesPaths.AppendLine("file '" + rally + "'");
             }
 
-            var needsReencoding = Settings.LimitMaxVideoBitrate && Settings.MaxVideoBitrate > 0;
             var needsRotation = rotationDegrees != 0;
 
-            var videoCodec = needsReencoding ? " -b:v " + Settings.MaxVideoBitrate + "M " + (needsRotation ? GetRotationArguments(rotationDegrees, true) : "")
-                                             : " -c:v copy ";
+            //If only the rotation is done, video quality is reduced (why? just saw a stackoverflow post saying it happens)
+            //In that case, high bitrate must be forced (ideally we'd get the original bitrate and force it, but 10 is a pretty high
+            //number. TODO: check if it gets the maximum number availabl
+            var reencodeArguments = Settings.LimitMaxVideoBitrate && Settings.MaxVideoBitrate > 0
+                                    ? " -b:v " + Settings.MaxVideoBitrate + "M "
+                                    : needsRotation ? "-b:v 10M "
+                                                    : "";
+
+            var videoCodec = !string.IsNullOrEmpty(reencodeArguments) ? (reencodeArguments 
+                                                                         + (needsRotation ? GetRotationArguments(rotationDegrees, true) : ""))
+                                                                      : " -c:v copy ";
 
             File.WriteAllText(rallyFilePath, ralliesPaths.ToString());
 
@@ -324,17 +332,6 @@ namespace TennisHighlights.Utils
             var arguments = "-f concat -safe 0 -i \"" + rallyFilePath + "\"" + videoCodec + " -c:a copy -max_muxing_queue_size 9999 " + "\"" + resultFilePath + "\"";
 
             error = Call(arguments, askedToStop).Result.error;
-
-            //TODO: rotation should always be done during the join, not reason to do it separetely later
-            //perforamance-wise it won't change much since join without reencoding is fast, but the code will be simpler
-            if (needsRotation && !needsReencoding)
-            {
-                RotateSingleVideo(resultFilePath, rotationDegrees, out var error2, true);
-
-                error += error2;
-
-                File.Delete(resultFilePath);
-            }
         }
 
         /// <summary>
@@ -377,7 +374,9 @@ namespace TennisHighlights.Utils
 
             var inputFileName = fileToRotate.Substring(0, fileToRotate.Length - 4);
 
-            var videoCodec = GetRotationArguments(rotationDegrees, calledFromJoin);
+            //When rotating, a high bitrate needs to be forced, otherwise the rotation will reduce the video quality (unknown reason but 
+            //according to stackoverflow it's a ffmpeg problem
+            var videoCodec = "-b:v 10M " + GetRotationArguments(rotationDegrees, calledFromJoin);
 
             var outputFile = FileManager.GetUnusedFilePathInFolderFromFileName(inputFileName + "_rotated.mp4",
                                                                                FileManager.TempDataPath, ".mp4");
