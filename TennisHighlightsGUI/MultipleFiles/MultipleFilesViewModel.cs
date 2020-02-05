@@ -24,6 +24,11 @@ namespace TennisHighlightsGUI.MultipleFiles
         private const string _pathsSeparator = ";";
 
         /// <summary>
+        /// The copied color settings
+        /// </summary>
+        private ColorCorrectionSettings _copiedColorSettings;
+
+        /// <summary>
         /// The main view model
         /// </summary>
         public MainViewModel MainVM { get; }
@@ -32,6 +37,14 @@ namespace TennisHighlightsGUI.MultipleFiles
         /// The add file command
         /// </summary>
         public Command AddFileCommand { get; }
+        /// <summary>
+        /// The copy color settings command
+        /// </summary>
+        public Command CopyColorSettingsCommand { get; }
+        /// <summary>
+        /// The paste color settings command
+        /// </summary>
+        public Command PasteColorSettingsCommand { get; }
         /// <summary>
         /// The remove selected file command
         /// </summary>
@@ -84,6 +97,9 @@ namespace TennisHighlightsGUI.MultipleFiles
         /// </summary>
         public ObservableCollection<SingleFileViewModel> FilesToProcess { get; } = new ObservableCollection<SingleFileViewModel>();
 
+        /// <summary>
+        /// Unused
+        /// </summary>
         public override bool CanConvert => false;
 
         /// <summary>
@@ -124,6 +140,34 @@ namespace TennisHighlightsGUI.MultipleFiles
                 if (SelectedFile != null)
                 {
                     MainVM.SetChosenFileAndLoadImage(SelectedFile.FilePath);
+                }
+            });
+
+            CopyColorSettingsCommand = new Command((param) =>
+            {
+                if (SelectedFile != null)
+                {
+                    var log = ProcessedFileLog.GetOrCreateProcessedFileLog(SelectedFile.FilePath);
+
+                    _copiedColorSettings = new ColorCorrectionSettings(log.CCSettings);
+                }
+            });
+
+            PasteColorSettingsCommand = new Command((param) =>
+            {
+                if (SelectedFile != null && _copiedColorSettings != null)
+                {
+                    var log = MainVM.ChosenFile == SelectedFile.FilePath 
+                              ? MainVM.ChosenFileLog
+                              : ProcessedFileLog.GetOrCreateProcessedFileLog(SelectedFile.FilePath);
+
+                    log.CCSettings.Brightness = _copiedColorSettings.Brightness;
+                    log.CCSettings.Contrast = _copiedColorSettings.Contrast;
+                    log.CCSettings.Saturation = _copiedColorSettings.Saturation;
+                    log.CCSettings.WarmColor = _copiedColorSettings.WarmColor;
+                    log.CCSettings.ToneColor = _copiedColorSettings.ToneColor;
+
+                    log.Save();
                 }
             });
 
@@ -260,30 +304,15 @@ namespace TennisHighlightsGUI.MultipleFiles
                                 file.Status = GetFileStatus(file.FilePath);
                             }
 
+                            if (!chosenFileLog.Rallies.Any())
+                            {
+                                chosenFileLog.ParseRallies(settings, videoInfo, null, checkIfCancelRequested);
+                            }
+
+                            file.Status = GetFileStatus(file.FilePath);
+
                             if (!RequestedCancel && alsoJoin)
                             {
-                                if (chosenFileLog.Rallies.Count == 0)
-                                {
-                                    var rallies = TennisHighlightsEngine.GetRalliesFromBalls(settings, chosenFileLog.Balls, chosenFileLog, null, checkIfCancelRequested);
-
-                                    chosenFileLog.Rallies.Clear();
-
-                                    var j = 0;
-                                    foreach (var rally in rallies)
-                                    {
-                                        var rallyStart = (int)Math.Max(0, rally.FirstBall.FrameIndex - settings.General.SecondsBeforeRally
-                                                                                                       * videoInfo.FrameRate);
-
-                                        var rallyEnd = (int)Math.Min(videoInfo.TotalFrames, rally.LastBall.FrameIndex + settings.General.SecondsAfterRally
-                                                                                                                        * videoInfo.FrameRate);
-
-                                        chosenFileLog.Rallies.Add(new RallyEditData(j.ToString()) { Start = rallyStart, Stop = rallyEnd });
-                                        j++;
-                                    }
-
-                                    chosenFileLog.Save();
-                                }
-
                                 if (chosenFileLog.Rallies.Count > 0)
                                 {
                                     //If no rally was selected by default, we export them all, otherwise, we wanna preserve
@@ -303,8 +332,12 @@ namespace TennisHighlightsGUI.MultipleFiles
                                                      (int)Math.Round(100d * (0.5d + 1d * i) / FilesToProcess.Count),
                                                      ElapsedSeconds.TotalSeconds);
 
+                                    ColorCorrectionSettings ccSettings = null;
+
+                                    if (chosenFileLog.UseColorCorrection) { ccSettings = chosenFileLog.CCSettings; }
+
                                     var outputFile = RallyVideoCreator.BuildVideoWithAllRallies(chosenFileLog.Clone().Rallies.Where(r => r.IsSelected).ToList(),
-                                                                                                videoInfo, settings.General, chosenFileLog.RotationDegrees, out var error, null,
+                                                                                                videoInfo, settings.General, chosenFileLog.RotationDegrees, ccSettings, out var error, null,
                                                                                                 () => RequestedCancel);
 
                                     if (!string.IsNullOrEmpty(outputFile))
@@ -316,6 +349,8 @@ namespace TennisHighlightsGUI.MultipleFiles
                                     {
                                         throw new Exception(error);
                                     }
+
+                                    chosenFileLog.Save();
                                 }
                             }
                         }

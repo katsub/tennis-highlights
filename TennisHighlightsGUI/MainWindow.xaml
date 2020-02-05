@@ -234,6 +234,11 @@
                             Margin="0,10,0,0"
                             Style="{StaticResource cancelButton}"
                             Command="{Binding MultipleFilesCommand}" />
+                    <Button Content="Color correction..."
+                            Margin="0,10,0,0"
+                            Style="{StaticResource cancelButton}"
+                            Command="{Binding ColorCorrectionCommand}"
+                            IsEnabled="{Binding CanConvert}"/>
                     <Button Content="Log"
                             Margin="0,10,0,0"
                             Style="{StaticResource cancelButton}"

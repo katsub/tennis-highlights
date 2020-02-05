@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using TennisHighlights.ImageProcessing;
 
@@ -48,6 +50,71 @@ namespace TennisHighlights.Utils
         }
 
         /// <summary>
+        /// Color corrects the bitmap
+        /// </summary>
+        /// <param name="bitmap">The bitmap</param>
+        /// <param name="brightness">The brightness</param>
+        /// <param name="saturation">The saturation</param>
+        /// <param name="contrast">The contrast</param>
+        /// <param name="warmColor">The warm color</param>
+        /// <param name="toneColor">The tone color</param>
+        /// <returns></returns>
+        public static Bitmap ColorCorrect(string previewFilePath, ColorCorrectionSettings settings, int previewQuality)
+        {
+            var outputFileName = "previewOutput.jpeg";
+
+            var outputFilePath = FileManager.TempDataPath + outputFileName;
+
+            try
+            {
+                File.Delete(outputFilePath);
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, e.ToString());
+            }
+            
+            var colorCorrectionArguments = GetVideoFilter(new[] { GetColorCorrectionFilterArguments(settings) });
+
+            var normPreviewQuality = (int)Math.Round(31 - 30d * previewQuality / 100d);
+
+            var arguments = "-i \"" + previewFilePath + "\" -qscale:v " + normPreviewQuality + " -c:a libfaac " + colorCorrectionArguments + "\"" + outputFilePath + "\"";
+
+            Call(arguments);
+
+            if (WaitForFileToBeCreated(outputFilePath, 20, 5000).Result)
+            {
+                return FileManager.ReadTempBitmapFile(outputFileName);
+            }
+
+            Logger.Log(LogType.Error, "Timeout in preview file creation.");
+
+            return null;
+        }
+
+        /// <summary>
+        /// Waits for the file to be created.
+        /// </summary>
+        /// <param name="filePath">The file path.</param>
+        /// <param name="timeBetweenChecks">The time between checking if the file has been created.</param>
+        /// <param name="timeout">The max time spent waiting.</param>
+        /// <returns></returns>
+        private static async Task<bool> WaitForFileToBeCreated(string filePath, int timeBetweenChecks, int timeout)
+        {
+            var stopwatch = new Stopwatch();
+
+            stopwatch.Start();
+
+            while (stopwatch.ElapsedMilliseconds < timeout && !File.Exists(filePath))
+            {
+                Thread.Sleep(timeBetweenChecks);
+//                await Task.Delay(timeBetweenChecks);
+            }
+
+            return File.Exists(filePath);
+        }
+
+        /// <summary>
         /// Calls FFmpeg with the specified arguments.
         /// </summary>
         /// <param name="arguments">The arguments.</param>
@@ -82,7 +149,8 @@ namespace TennisHighlights.Utils
                     proc.BeginOutputReadLine();
                     proc.BeginErrorReadLine();
 
-                    proc.OutputDataReceived += (sender, e) => {
+                    proc.OutputDataReceived += (sender, e) =>
+                    {
                         Logger.Log(LogType.Information, e.Data);
                     };
 
@@ -105,7 +173,7 @@ namespace TennisHighlights.Utils
                 catch { }
 
                 await Task.Delay(1000);
-                
+
                 proc.Close();
 
                 _instances.Remove(proc);
@@ -294,12 +362,88 @@ namespace TennisHighlights.Utils
         }
 
         /// <summary>
+        /// Extracts a single frame from the source video at the given time
+        /// </summary>
+        /// <param name="sourceVideoPath">The source video path</param>
+        /// <param name="timeToExtract">The time from which the frame should be extracted</param>
+        /// <param name="quality">The quality of the extracted frame, from 0 to 100</param>
+        public static Bitmap ExtractSingleFrame(string sourceVideoPath, TimeSpan timeToExtract, int quality = 0)
+        {
+            var outputFileName = "extractedFrame.jpeg";
+
+            var outputFilePath = FileManager.TempDataPath + outputFileName;
+
+            try
+            {
+                File.Delete(outputFilePath);
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, e.ToString());
+            }
+
+            var normQuality = 31 - (int)Math.Round(30d * quality / 100d);
+
+            var arguments = "-ss " + timeToExtract.ToString() + " -i \"" + sourceVideoPath + "\" -qscale:v " + normQuality + " -frames:v 1 \"" + outputFilePath + "\"";
+
+            Call(arguments);
+
+            if (WaitForFileToBeCreated(outputFilePath, 20, 5000).Result)
+            {
+                return FileManager.ReadTempBitmapFile(outputFileName);
+            }
+
+            Logger.Log(LogType.Error, "Timeout in single frame extraction.");
+
+            return null;
+        }
+
+        /// <summary>
+        /// Extracts a single frame from the source video at the given time
+        /// </summary>
+        /// <param name="sourceVideoPath">The source video path</param>
+        /// <param name="timeToExtract">The time from which the frame should be extracted</param>
+        /// <param name="quality">The quality of the extracted frame, from 0 to 100</param>
+        public static string ExtractSingleFrameAndReturnPath(string sourceVideoPath, TimeSpan timeToExtract, int quality = 0)
+        {
+            var outputFileName = "extractedFrame.jpeg";
+
+            var outputFilePath = FileManager.TempDataPath + outputFileName;
+
+            try
+            {
+                File.Delete(outputFilePath);
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, e.ToString());
+            }
+
+            var normQuality = 31 - (int)Math.Round(30d * quality / 100d);
+
+            var arguments = "-ss " + timeToExtract.ToString() + " -i \"" + sourceVideoPath + "\" -qscale:v " + normQuality + " -frames:v 1 \"" + outputFilePath + "\"";
+
+            Call(arguments);
+
+            if (WaitForFileToBeCreated(outputFilePath, 20, 5000).Result)
+            {
+                return outputFilePath;
+            }
+
+            Logger.Log(LogType.Error, "Timeout in single frame extraction.");
+
+            return null;
+        }
+
+        /// <summary>
         /// Joins all rally videos.
         /// </summary>
         /// <param name="rotationDegrees">The rotation in degrees.</param>
         /// <param name="resultFilePath">The result file path.</param>
+        /// <param name="ccSettings">The color correction settings.</param>
         /// <param name="askedToStop">The asked to stop.</param>
-        public static void JoinAllRallyVideos(string resultFilePath, double rotationDegrees, out string error, Func<bool> askedToStop = null)
+        public static void JoinAllRallyVideos(string resultFilePath, double rotationDegrees, out string error,
+                                              ColorCorrectionSettings ccSettings = null, Func<bool> askedToStop = null)
         {
             var rallyFolderPath = FileManager.TempDataPath + FileManager.RallyVideosFolder + "\\";
             var rallyFilePath = rallyFolderPath + "rallies.txt";
@@ -318,12 +462,18 @@ namespace TennisHighlights.Utils
             //number. TODO: check if it gets the maximum number availabl
             var reencodeArguments = Settings.LimitMaxVideoBitrate && Settings.MaxVideoBitrate > 0
                                     ? " -b:v " + Settings.MaxVideoBitrate + "M "
-                                    : needsRotation ? "-b:v 10M "
+                                    : needsRotation ? " -b:v 10M "
                                                     : "";
 
-            var videoCodec = !string.IsNullOrEmpty(reencodeArguments) ? (reencodeArguments 
-                                                                         + (needsRotation ? GetRotationArguments(rotationDegrees, true) : ""))
-                                                                      : " -c:v copy ";
+            var videoFilters = new List<string>();
+
+            if (needsRotation) { videoFilters.Add(GetRotationFilterArguments(rotationDegrees, true)); }
+
+            if (ccSettings != null) { videoFilters.Add(GetColorCorrectionFilterArguments(ccSettings)); }
+
+            if (videoFilters.Any()) { reencodeArguments += GetVideoFilter(videoFilters); }
+
+            var videoCodec = !string.IsNullOrEmpty(reencodeArguments) ? reencodeArguments : " -c:v copy ";
 
             File.WriteAllText(rallyFilePath, ralliesPaths.ToString());
 
@@ -335,11 +485,62 @@ namespace TennisHighlights.Utils
         }
 
         /// <summary>
+        /// Gets the video filter.
+        /// </summary>
+        /// <param name="filters">The video filters.</param>
+        public static string GetVideoFilter(IEnumerable<string> filters)
+        {
+            return " -vf \"" + string.Join(",", filters) + "\" "; 
+        }
+
+        /// <summary>
+        /// Gets the color correction filter arguments
+        /// </summary>
+        /// <param name="settings">The settings</param>
+        public static string GetColorCorrectionFilterArguments(ColorCorrectionSettings settings)
+        {
+            var contrast = settings.Contrast;
+            var brightness = settings.Brightness;
+            var saturation = settings.Saturation;
+            var warmColor = settings.WarmColor;
+            var toneColor = settings.ToneColor;
+
+            //contrast varies between -1000 and 1000, default value is 1
+            //1000 and -1000 are absurd values that are never gonna be useful, 2 and 0 is more than enough
+            var normContrast = 1d + contrast / 100d;
+            //brightness varies between -1 and 1, default value is 0
+            //0.33d and -0.33d seems like a lot already
+            var normBrightness = brightness / 200d;
+            //saturation varies between 0 and 3, default value is 1
+            var normSaturation = 1d + (saturation > 0d ? saturation / 50d
+                                                       : saturation / 100d);
+
+            var normTemperature = 1d + warmColor / 100d;
+            var normTone = 1d + toneColor / 100d;
+             
+            var normGammaRed = (normTemperature + normTone) / 2d;
+            var normGammaGreen = 1d;
+            var normGammaBlue = (normTone + 2d - normTemperature) / 2d;
+
+            var norm = (normGammaRed + normGammaBlue + normGammaGreen) / 3d;
+            normGammaBlue /= norm;
+            normGammaGreen /= norm;
+            normGammaRed /= norm;
+
+            var colorCorrectionArguments = "eq = " + normContrast + ":" + normBrightness + ":" + normSaturation
+                                                   + ":1:" + normGammaRed + ":" + normGammaGreen + ":" + normGammaBlue + " ";
+
+            colorCorrectionArguments = colorCorrectionArguments.Replace(",", ".");
+
+            return colorCorrectionArguments;
+        }
+
+        /// <summary>
         /// Gets the rotation arguments.
         /// </summary>
         /// <param name="rotationDegrees">The rotation in degrees.</param>
         /// <param name="calledFromJoin">True if called from Join, false otherwise</param>
-        public static string GetRotationArguments(double rotationDegrees, bool calledFromJoin = false)
+        public static string GetRotationFilterArguments(double rotationDegrees, bool calledFromJoin = false)
         {
             //TODO: Accept angles in double: see how to write culture invariant numbers so FFmpeg won't have a problem
             //depending on the number being written with a dot or a comma
@@ -348,8 +549,8 @@ namespace TennisHighlights.Utils
             var cropRect = CropRotationHelper.GetCropCoordinates(rotationDegreesRounded, new OpenCvSharp.Rect(0, 0, VideoInfo.Width, VideoInfo.Height));
 
             //For some reason FFmpeg won't rotate more than 90 degrees, vflip is needed to it actually turns upside down
-            var vflip = rotationDegreesRounded > 90 ? "vflip," : string.Empty;
-            var angleSign = rotationDegreesRounded > 90 ? "-" : string.Empty;
+            var vflip = rotationDegreesRounded > 90  && rotationDegreesRounded < 270 ? "vflip," : string.Empty;
+            var angleSign = rotationDegreesRounded > 90 && rotationDegreesRounded < 270 ? "-" : string.Empty;
 
             //For reasons I have yet to understand, when called from join, it doesn't need vlip or angleSign
             if (calledFromJoin)
@@ -358,7 +559,7 @@ namespace TennisHighlights.Utils
                 angleSign = string.Empty;
             }
 
-            return " -max_muxing_queue_size 99999 -vf \"" + vflip + "rotate=" + angleSign + rotationDegreesRounded + "*PI/180, crop=" + cropRect.Width + ":" + cropRect.Height + ":" + cropRect.X + ":" + cropRect.Y + "\" ";
+            return  vflip + "rotate=" + angleSign + rotationDegreesRounded + "*PI/180, crop=" + cropRect.Width + ":" + cropRect.Height + ":" + cropRect.X + ":" + cropRect.Y;
         }
 
         /// <summary>
@@ -376,7 +577,10 @@ namespace TennisHighlights.Utils
 
             //When rotating, a high bitrate needs to be forced, otherwise the rotation will reduce the video quality (unknown reason but 
             //according to stackoverflow it's a ffmpeg problem
-            var videoCodec = "-b:v 10M " + GetRotationArguments(rotationDegrees, calledFromJoin);
+            var bitrate = Settings.LimitMaxVideoBitrate && Settings.MaxVideoBitrate > 0 ? Settings.MaxVideoBitrate : 50;
+
+            var videoCodec = " -b:v " + bitrate + "M  -max_muxing_queue_size 99999 " 
+                             + GetVideoFilter(new[] { GetRotationFilterArguments(rotationDegrees, calledFromJoin) });
 
             var outputFile = FileManager.GetUnusedFilePathInFolderFromFileName(inputFileName + "_rotated.mp4",
                                                                                FileManager.TempDataPath, ".mp4");

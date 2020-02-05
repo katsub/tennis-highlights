@@ -195,6 +195,8 @@
                         <Button Content="Export"
                                 Margin="10,0,0,0"
                                 Command="{Binding ExportCommand}" />
+                        <TextBlock  Margin="5,3,0,0"
+                                    Text="{Binding Text}" />
                     </StackPanel>
                     <StackPanel HorizontalAlignment="Center">
                         <Button Content="Play"

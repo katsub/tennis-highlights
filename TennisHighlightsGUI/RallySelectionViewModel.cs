@@ -325,6 +325,23 @@ namespace TennisHighlightsGUI
         /// Gets the chosen file URI.
         /// </summary>
         public Uri ChosenFileUri { get; set; }
+        private string _status;
+        /// <summary>
+        /// The status
+        /// </summary>
+        public string Status
+        {
+            get => _status;
+            set
+            {
+                if (_status != value)
+                {
+                    _status = value;
+
+                    OnPropertyChanged();
+                }
+            }
+        }
         /// <summary>
         /// Gets the delta frames.
         /// </summary>
@@ -394,9 +411,22 @@ namespace TennisHighlightsGUI
                     rallyPath = saveFileDialog.FileName;
 
                     Task.Run(() =>
-                    { 
-                        FFmpegCaller.ExportRally(rallyPath, rally.Start / videoInfo.FrameRate,
-                                                 rally.Stop / videoInfo.FrameRate, settings.AnalysedVideoPath, mainVM.ChosenFileLog.RotationDegrees, out var error, () => RequestedCancel);
+                    {
+                        try
+                        {
+                            Status = "Exporting...";
+
+                            FFmpegCaller.ExportRally(rallyPath, rally.Start / videoInfo.FrameRate,
+                                                     rally.Stop / videoInfo.FrameRate, settings.AnalysedVideoPath, mainVM.ChosenFileLog.RotationDegrees, out var error, () => RequestedCancel);
+                        }
+                        catch (Exception e)
+                        {
+                            Logger.Log(LogType.Error, e.ToString());
+                        }
+                        finally
+                        {
+                            Status = "";
+                        }
 
                         Process.Start("explorer.exe", FileManager.TempDataPath);
                     });
@@ -590,8 +620,14 @@ namespace TennisHighlightsGUI
             {
                 try
                 {
+                    ColorCorrectionSettings ccSettings = null;
+
+                    if (MainVM.ChosenFileLog.UseColorCorrection) { ccSettings = MainVM.ChosenFileLog.CCSettings; }
+
                     RallyVideoCreator.BuildVideoWithAllRallies(MainVM.ChosenFileLog.Clone().Rallies.Where(r => r.IsSelected).ToList(),
-                                                               MainVM.VideoInfo, MainVM.Settings.General, MainVM.ChosenFileLog.RotationDegrees, out var error, SendProgressInfo, () => RequestedCancel);
+                                                               MainVM.VideoInfo, MainVM.Settings.General, MainVM.ChosenFileLog.RotationDegrees, 
+                                                               ccSettings,
+                                                               out var error, SendProgressInfo, () => RequestedCancel);
 
                     SendProgressInfo(new ProgressInfo(null, RequestedCancel ? 0 : 100, RequestedCancel ? "Canceled" : "Done", 0d));
                 }

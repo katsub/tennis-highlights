@@ -18,14 +18,13 @@ namespace TennisHighlights
         /// Gets the rallies from balls.
         /// </summary>
         /// <param name="settings">The settings.</param>
-        /// <param name="ballsPerFrame">The balls per frame.</param>
         /// <param name="processedFileLog">The processed file log.</param>
         /// <param name="rallyProgressUpdateInfo">The rally progress update information.</param>
         /// <param name="wasCancelRequested">The was cancel requested.</param>
-        public static List<Rally> GetRalliesFromBalls(TennisHighlightsSettings settings, Dictionary<int, List<Point>> ballsPerFrame,
-                                                      ProcessedFileLog processedFileLog, Action<int, int> rallyProgressUpdateInfo = null,
-                                                      Func<bool> wasCancelRequested = null)
+        public static List<Rally> GetRalliesFromBalls(TennisHighlightsSettings settings, ProcessedFileLog processedFileLog, 
+                                                      Action<int, int> rallyProgressUpdateInfo = null, Func<bool> wasCancelRequested = null)
         {
+            var ballsPerFrame = processedFileLog.Balls;
             var arcsPerFrame = GetArcsPerFrame(ballsPerFrame);
 
             //We assume the video aspect ratio to be 1.78 and the analysed height to be the same from when the balls were calculated

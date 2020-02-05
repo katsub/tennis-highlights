@@ -12,6 +12,25 @@ namespace TennisHighlights.Rallies
     public static class RallyFilter
     {
         /// <summary>
+        /// Filters the duration of the rallies by.
+        /// </summary>
+        /// <param name="rallies">The rallies.</param>
+        public static List<Rally> FilterRalliesByDuration(List<Rally> rallies)
+        {
+            var clusterSize = 5;
+
+            if (rallies.Count > clusterSize)
+            {
+                var filter = ScoreByDuration(rallies.ToDictionary(r => r, r => new RallyFilterInfo(rallies.IndexOf(r))), clusterSize);
+                var shortDurationClusters = new HashSet<int>(filter.clusters.Clusters.OrderBy(c => c.Centroid[0]).Take(2).Select(c => c.Index));
+
+                return new List<Rally>(filter.rallies.Where(r => !shortDurationClusters.Contains(r.Value.DurationCluster)).Select(r => r.Key));
+            }
+
+            return new List<Rally>(rallies);
+        }
+
+        /// <summary>
         /// Sorts rallies by distance and duration
         /// </summary>
         /// <param name="rallies">The rallies.</param>

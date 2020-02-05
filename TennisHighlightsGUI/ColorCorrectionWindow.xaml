@@ -1,0 +1,112 @@
+﻿<Window x:Class="TennisHighlightsGUI.ColorCorrectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:TennisHighlightsGUI"
+        mc:Ignorable="d"
+        WindowStartupLocation="CenterScreen"
+        Title="Color Correction"
+        Height="450"
+        Width="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="150" />
+        </Grid.ColumnDefinitions>
+        <Grid VerticalAlignment="Top">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Image Source="{Binding PreviewImage}"
+                   VerticalAlignment="Top"
+                   Stretch="Uniform">
+            </Image>
+            <Slider Margin="0,5,0,0"
+                    Grid.Row="1"
+                    Value="{Binding SampleFrameIndex}"
+                    TickFrequency="100"
+                    Maximum="100"
+                    Minimum="0" />
+        </Grid>
+        <Grid Grid.Column="1"
+              Margin="5,5,5,0">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Brightness:" />
+                    <TextBlock Grid.Column="1"                               
+                               HorizontalAlignment="Right"
+                               Text="{Binding Brightness}" />
+                </Grid>
+                <Slider Value="{Binding Brightness}"
+                        TickFrequency="200"
+                        Maximum="100"
+                        Minimum="-100"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Contrast:" />
+                    <TextBlock Grid.Column="1"
+                               HorizontalAlignment="Right"
+                               Text="{Binding Contrast}" />
+                </Grid>
+                <Slider Value="{Binding Contrast}"
+                        TickFrequency="200"
+                        Maximum="100"
+                        Minimum="-100"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Saturation:" />
+                    <TextBlock Grid.Column="1"
+                               HorizontalAlignment="Right"
+                               Text="{Binding Saturation}" />
+                </Grid>
+                <Slider Value="{Binding Saturation}"
+                        TickFrequency="200"
+                        Maximum="100"
+                        Minimum="-100" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Temperature:" />
+                    <TextBlock Grid.Column="1"
+                               HorizontalAlignment="Right"
+                               Text="{Binding WarmColor}" />
+                </Grid>
+                <Slider Value="{Binding WarmColor}"
+                        TickFrequency="200"
+                        Maximum="100"
+                        Minimum="-100"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Tone:" />
+                    <TextBlock Grid.Column="1"
+                               HorizontalAlignment="Right"
+                               Text="{Binding ToneColor}" />
+                </Grid>
+                <Slider Value="{Binding ToneColor}"
+                        TickFrequency="200"
+                        Maximum="100"
+                        Minimum="-100"/>
+                <CheckBox IsChecked="{Binding UseColorCorrection}"
+                          Content="Use color correction" />
+                <TextBlock Text="{Binding StatusText}"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

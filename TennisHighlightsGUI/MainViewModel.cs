@@ -29,6 +29,11 @@ namespace TennisHighlightsGUI
         private const string _rallyClassificationsFileName = "classifiedRallies.txt";
 
         /// <summary>
+        /// The color correction window
+        /// </summary>
+        private ColorCorrectionWindow _colorCorrectionWindow;
+
+        /// <summary>
         /// The multiple files window
         /// </summary>
         private MultipleFilesWindow _multipleFilesWindow;
@@ -51,6 +56,10 @@ namespace TennisHighlightsGUI
         /// Gets the multiple files command.
         /// </summary>
         public Command MultipleFilesCommand { get; }
+        /// <summary>
+        /// Gets the color correction command.
+        /// </summary>
+        public Command ColorCorrectionCommand { get; }
         /// <summary>
         /// Gets the choose output folder command.
         /// </summary>
@@ -133,7 +142,7 @@ namespace TennisHighlightsGUI
                     ChosenFileLog.RotationDegrees = value;
 
                     //Needs to be saved immediately because the multiple file window might use it
-                    ChosenFileLog.Save();
+                    ChosenFileLog.SaveRotation();
                     OnPropertyChanged();
                 }
             }
@@ -227,6 +236,18 @@ namespace TennisHighlightsGUI
                 _multipleFilesWindow.WindowState = WindowState.Normal;
             });
 
+            ColorCorrectionCommand = new Command((param) =>
+            {
+                if (_colorCorrectionWindow == null || !_colorCorrectionWindow.IsLoaded)
+                {
+                    _colorCorrectionWindow = new ColorCorrectionWindow(this);
+                }
+
+                _colorCorrectionWindow.WindowState = WindowState.Minimized;
+                _colorCorrectionWindow.Show();
+                _colorCorrectionWindow.WindowState = WindowState.Normal;
+            });
+
             RegenerateRalliesCommand = new Command((param) =>
             {
                 var result = MessageBox.Show("This will restore all rallies to their original start-stop points from when they were extracted. Are you sure?", "Warning", MessageBoxButton.YesNo);
@@ -256,9 +277,9 @@ namespace TennisHighlightsGUI
             {
                 var rallyClassificationsFile = FileManager.ReadPersistentFile(_rallyClassificationsFileName);
 
-                var rallies = TennisHighlightsEngine.GetRalliesFromBalls(Settings, ChosenFileLog.Balls, ChosenFileLog);
+                var rallies = TennisHighlightsEngine.GetRalliesFromBalls(Settings, ChosenFileLog);
 
-                rallies = FilterRalliesByDuration(rallies);
+                rallies = RallyFilter.FilterRalliesByDuration(rallies);
 
                 if (rallies.Count == ChosenFileLog.Rallies.Count)
                 {
@@ -451,8 +472,13 @@ namespace TennisHighlightsGUI
                     rally.IsSelected = true;
                 }
 
+                ColorCorrectionSettings ccSettings = null;
+
+                if (ChosenFileLog.UseColorCorrection) { ccSettings = ChosenFileLog.CCSettings; }
+
                 RallyVideoCreator.BuildVideoWithAllRallies(ChosenFileLog.Clone().Rallies,
-                                                           VideoInfo, Settings.General, ChosenFileLog.RotationDegrees, out var error, SendProgressInfo, () => RequestedCancel);
+                                                           VideoInfo, Settings.General, ChosenFileLog.RotationDegrees,
+                                                           ccSettings, out var error, SendProgressInfo, () => RequestedCancel);
             }
             else
             {
@@ -552,45 +578,9 @@ namespace TennisHighlightsGUI
 
             bool cancelRequested() => RequestedCancel;
 
-            var rallies = TennisHighlightsEngine.GetRalliesFromBalls(Settings, ChosenFileLog.Balls, ChosenFileLog, rallyProgressUpdateAction, cancelRequested);
+            ChosenFileLog.ParseRallies(Settings, VideoInfo, rallyProgressUpdateAction, cancelRequested);
 
-            rallies = FilterRalliesByDuration(rallies);
-
-            ChosenFileLog.Rallies.Clear();
-
-            var i = 0;
-            foreach (var rally in rallies)
-            {
-                var rallyStart = (int)Math.Max(0, rally.FirstBall.FrameIndex - Settings.General.SecondsBeforeRally
-                                                                               * VideoInfo.FrameRate);
-
-                var rallyEnd = (int)Math.Min(VideoInfo.TotalFrames, rally.LastBall.FrameIndex + Settings.General.SecondsAfterRally
-                                                                                                * VideoInfo.FrameRate);
-
-                ChosenFileLog.Rallies.Add(new RallyEditData(i.ToString()) { Start = rallyStart, Stop = rallyEnd });
-                i++;
-            }
-
-            SendProgressInfo("Built rally " + rallies.Count, 100, elapsedTime + stopwatch.Elapsed.TotalSeconds);
-        }
-
-        /// <summary>
-        /// Filters the duration of the rallies by.
-        /// </summary>
-        /// <param name="rallies">The rallies.</param>
-        private List<Rally> FilterRalliesByDuration(List<Rally> rallies)
-        {
-            var clusterSize = 5;
-
-            if (rallies.Count > clusterSize && Settings.General.FilterRalliesByDuration)
-            {
-                var filter = RallyFilter.ScoreByDuration(rallies.ToDictionary(r => r, r => new RallyFilterInfo(rallies.IndexOf(r))), clusterSize);
-                var shortDurationClusters = new HashSet<int>(filter.clusters.Clusters.OrderBy(c => c.Centroid[0]).Take(2).Select(c => c.Index));
-
-                return new List<Rally>(filter.rallies.Where(r => !shortDurationClusters.Contains(r.Value.DurationCluster)).Select(r => r.Key));
-            }
-
-            return new List<Rally>(rallies);
+            SendProgressInfo("Built rally " + ChosenFileLog.Rallies.Count, 100, elapsedTime + stopwatch.Elapsed.TotalSeconds);
         }
 
         /// <summary>
@@ -652,7 +642,7 @@ namespace TennisHighlightsGUI
         /// Gets the video preview image.
         /// </summary>
         /// <param name="filePath">The file path.</param>
-        private static Bitmap GetVideoPreviewImage(string filePath)
+        internal static Bitmap GetVideoPreviewImage(string filePath)
         {
             using (var video = new VideoCapture(filePath))
             using (var frame = new Mat())

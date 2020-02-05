@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml.Linq;
+using TennisHighlights.ImageProcessing;
 using TennisHighlights.Utils;
 
 namespace TennisHighlights
@@ -17,6 +18,12 @@ namespace TennisHighlights
         public const string Size = "Size";
         public const string ModifiedDate = "ModifiedDate";
         public const string RotationDegrees = "RotationDegrees";
+        public const string Saturation = "Saturation";
+        public const string Brightness = "Brightness";
+        public const string Constrast = "Constrast";
+        public const string WarmColor = "WarmColor";
+        public const string ToneColor = "ToneColor";
+        public const string UseColorCorrection = "UseColorCorrection";
         public const string BallLog = "BallLog";
         public const string RallyLog = "RallyLog";
         public const string Rally = "Rally";
@@ -60,7 +67,14 @@ namespace TennisHighlights
         /// Gets the rotation degrees.
         /// </summary>
         public int RotationDegrees { get; set; }
-
+        /// <summary>
+        /// The color correction settings
+        /// </summary>
+        public ColorCorrectionSettings CCSettings { get; } = new ColorCorrectionSettings();
+        /// <summary>
+        /// True if color correction should be used, false otherwise.
+        /// </summary>
+        public bool UseColorCorrection { get; set; }
         /// <summary>
         /// Gets or sets the last parsed frame.
         /// </summary>
@@ -127,6 +141,12 @@ namespace TennisHighlights
                     Signature = fileInfo.GetStringElementValue(LogKeys.Signature);
 
                     RotationDegrees = fileInfo.GetIntElementValue(LogKeys.RotationDegrees);
+                    CCSettings.Saturation = fileInfo.GetIntElementValue(LogKeys.Saturation);
+                    CCSettings.Brightness = fileInfo.GetIntElementValue(LogKeys.Brightness);
+                    CCSettings.Contrast = fileInfo.GetIntElementValue(LogKeys.Constrast);
+                    CCSettings.WarmColor = fileInfo.GetIntElementValue(LogKeys.WarmColor);
+                    CCSettings.ToneColor = fileInfo.GetIntElementValue(LogKeys.ToneColor);
+                    UseColorCorrection = fileInfo.GetBoolElementValue(LogKeys.UseColorCorrection);
                 }
 
                 var ballLog = document.Root.Element(LogKeys.BallLog);
@@ -162,6 +182,41 @@ namespace TennisHighlights
         /// Clones this instance.
         /// </summary>
         public ProcessedFileLog Clone() => new ProcessedFileLog(XDocument.Parse(Serialize()));
+
+        /// <summary>
+        /// Parses the rallies.
+        /// </summary>
+        /// <param name="settings">The settings</param>
+        /// <param name="videoInfo">The video info</param>
+        /// <param name="rallyProgressUpdateAction">The rally progress update action</param>
+        /// <param name="cancelRequested">True if cancelling was requested</param>
+        public void ParseRallies(TennisHighlightsSettings settings, VideoInfo videoInfo,
+                                 Action<int, int> rallyProgressUpdateAction = null, Func<bool> cancelRequested = null)
+        {
+            var rallies = TennisHighlightsEngine.GetRalliesFromBalls(settings, this, rallyProgressUpdateAction, cancelRequested);
+
+            if (settings.General.FilterRalliesByDuration)
+            {
+                rallies = TennisHighlights.Rallies.RallyFilter.FilterRalliesByDuration(rallies);
+            }
+
+            Rallies.Clear();
+
+            var i = 0;
+            foreach (var rally in rallies)
+            {
+                var rallyStart = (int)Math.Max(0, rally.FirstBall.FrameIndex - settings.General.SecondsBeforeRally
+                                                                               * videoInfo.FrameRate);
+
+                var rallyEnd = (int)Math.Min(videoInfo.TotalFrames, rally.LastBall.FrameIndex + settings.General.SecondsAfterRally
+                                                                                                * videoInfo.FrameRate);
+
+                Rallies.Add(new RallyEditData(i.ToString()) { Start = rallyStart, Stop = rallyEnd });
+                i++;
+            }
+
+            Save();
+        }
 
         /// <summary>
         /// Reloads the balls from serialization.
@@ -256,6 +311,35 @@ namespace TennisHighlights
         }
 
         /// <summary>
+        /// Saves the rotation.
+        /// </summary>
+        public void SaveRotation()
+        {
+            var log = new ProcessedFileLog(_logPath);
+
+            log.RotationDegrees = RotationDegrees;
+
+            log.Save();
+        }
+
+        /// <summary>
+        /// Saves the color settings
+        /// </summary>
+        public void SaveColorSettings()
+        {
+            var log = new ProcessedFileLog(_logPath);
+
+            log.CCSettings.Brightness = CCSettings.Brightness;
+            log.CCSettings.Saturation = CCSettings.Saturation;
+            log.CCSettings.Contrast = CCSettings.Contrast;
+            log.CCSettings.WarmColor = CCSettings.WarmColor;
+            log.CCSettings.ToneColor = CCSettings.ToneColor;
+            log.UseColorCorrection = UseColorCorrection;
+
+            log.Save();
+        }
+
+        /// <summary>
         /// Serializes this instance.
         /// </summary>
         private string Serialize()
@@ -271,6 +355,12 @@ namespace TennisHighlights
             xFileInfo.AddElementWithValue(LogKeys.ModifiedDate, _modifiedDate);
             xFileInfo.AddElementWithValue(LogKeys.Signature, Signature);
             xFileInfo.AddElementWithValue(LogKeys.RotationDegrees, RotationDegrees);
+            xFileInfo.AddElementWithValue(LogKeys.Brightness, CCSettings.Brightness);
+            xFileInfo.AddElementWithValue(LogKeys.Constrast, CCSettings.Contrast);
+            xFileInfo.AddElementWithValue(LogKeys.Saturation, CCSettings.Saturation);
+            xFileInfo.AddElementWithValue(LogKeys.WarmColor, CCSettings.WarmColor);
+            xFileInfo.AddElementWithValue(LogKeys.ToneColor, CCSettings.ToneColor);
+            xFileInfo.AddElementWithValue(LogKeys.UseColorCorrection, UseColorCorrection);
 
             var xBallLog = new XElement(LogKeys.BallLog, FrameDataSerializer.SerializeBallsPerFrameIntoString(Balls), 
                                                          new XAttribute(LogKeys.LastParsedFrame, LastParsedFrame));

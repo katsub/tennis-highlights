@@ -223,7 +223,12 @@ namespace TennisHighlights
 
             if (File.Exists(filePath))
             {
-                return new Bitmap(filePath);
+                //Must not return the original bitmap: it locks the file for everyone else to use (or delete) as long as the
+                //bitmap exists (not disposed)
+                using (var originalBitmap = new Bitmap(filePath))
+                {
+                    return new Bitmap(originalBitmap);
+                }
             }
 
             return null;

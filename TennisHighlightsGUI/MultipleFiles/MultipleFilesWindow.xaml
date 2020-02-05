@@ -36,6 +36,12 @@
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Right">
                 <Button Margin="3,3,0,3"
+                        Command="{Binding CopyColorSettingsCommand}"
+                        Content="Copy color settings" />
+                <Button Margin="3,3,0,3"
+                        Command="{Binding PasteColorSettingsCommand}"
+                        Content="Paste color settings" />
+                <Button Margin="3,3,0,3"
                         Command="{Binding RemoveSelectedFileCommand}"
                         Content="Remove selected file" />
                 <Button Margin="3,3,0,3"
@@ -56,9 +62,11 @@
                       AutoGenerateColumns="False">
                 <DataGrid.Columns>
                     <DataGridTextColumn Binding="{Binding FilePath}"
-                                        Header="Path" />
+                                        Header="Path"
+                                        IsReadOnly="True"/>
                     <DataGridTextColumn Binding="{Binding Status}"
-                                        Header="Status" />
+                                        Header="Status"
+                                        IsReadOnly="True"/>
                 </DataGrid.Columns>
             </DataGrid>
             <Grid Grid.Row="2"
