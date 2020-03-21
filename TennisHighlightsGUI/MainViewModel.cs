@@ -48,6 +48,7 @@ namespace TennisHighlightsGUI
         public TennisHighlightsSettings Settings { get; private set; }
 
         #region Commands
+        public Command EstimatePoseCommand { get; }
         /// <summary>
         /// Gets the choose file command.
         /// </summary>
@@ -95,6 +96,10 @@ namespace TennisHighlightsGUI
                 if (_outputFolder != value)
                 {
                     _outputFolder = value;
+
+                    Settings.General.TempDataPath = OutputFolder;
+
+                    FileManager.Initialize(Settings.General);
 
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(CanConvert));
@@ -236,6 +241,11 @@ namespace TennisHighlightsGUI
                 _multipleFilesWindow.WindowState = WindowState.Normal;
             });
 
+            EstimatePoseCommand = new Command((param) =>
+            {
+                PoseEstimationBuilder.Test();
+            });
+
             ColorCorrectionCommand = new Command((param) =>
             {
                 if (_colorCorrectionWindow == null || !_colorCorrectionWindow.IsLoaded)
@@ -341,7 +351,6 @@ namespace TennisHighlightsGUI
                 if (dialog.ShowDialog() == true)
                 {
                     OutputFolder = Path.GetDirectoryName(dialog.FileName);
-                    Settings.General.TempDataPath = OutputFolder;
 
                     ChosenFileLog = ProcessedFileLog.GetOrCreateProcessedFileLog(Settings.General);
                 }
