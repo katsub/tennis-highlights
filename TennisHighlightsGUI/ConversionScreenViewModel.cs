@@ -4,6 +4,7 @@ using System.IO;
 using System.Media;
 using System.Windows;
 using System.Windows.Media.Imaging;
+using TennisHighlights;
 using TennisHighlights.Utils;
 
 namespace TennisHighlightsGUI

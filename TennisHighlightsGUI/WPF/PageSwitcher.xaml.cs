@@ -22,7 +22,7 @@ namespace TennisHighlightsGUI
 
             Logger.Log(LogType.Information, "App started.");
 
-            var viewModel = new PageSwitchViewModel(640); 
+            var viewModel = new PageSwitchViewModel(720); 
 
             DataContext = viewModel;
 

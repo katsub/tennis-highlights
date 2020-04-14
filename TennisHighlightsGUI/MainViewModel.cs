@@ -2,11 +2,12 @@
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using TennisHighlights;
@@ -228,6 +229,8 @@ namespace TennisHighlightsGUI
 
             LoadInitialPreviewImage();
 
+            Settings.General.PropertyChanged += General_PropertyChanged;
+
             #region Commands
             MultipleFilesCommand = new Command((param) =>
             {
@@ -243,7 +246,7 @@ namespace TennisHighlightsGUI
 
             EstimatePoseCommand = new Command((param) =>
             {
-                PoseEstimationBuilder.Test();
+                PoseEstimationBuilder.ClassifyLogFile(ChosenFileLog, VideoInfo);
             });
 
             ColorCorrectionCommand = new Command((param) =>
@@ -369,6 +372,40 @@ namespace TennisHighlightsGUI
         }
 
         /// <summary>
+        /// Handles the PropertyChanged event of the General control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="System.ComponentModel.PropertyChangedEventArgs"/> instance containing the event data.</param>
+        /// <exception cref="NotImplementedException"></exception>
+        private void General_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == (nameof(Settings.General.TrackPlayerMoves)) && Settings.General.TrackPlayerMoves)
+            {
+                var caffeeModelPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\pose_iter_160000.caffemodel";
+
+                if (!File.Exists(caffeeModelPath))
+                {
+                    var result = MessageBox.Show("Model needed for player move tracking not found. Download it now?", "Model not found", MessageBoxButton.YesNo);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        var uri = "https://drive.google.com/uc?export=download&confirm=YNtK&id=1xhVSPUTBS33BIQJQzx_SVrpls0LTtPas";
+
+                        var webClient = new WebClient();
+
+                        var caffeeModel = webClient.DownloadData(uri);
+
+                        File.WriteAllBytes(caffeeModelPath, caffeeModel);
+                    }
+                    else
+                    {
+                        Settings.General.TrackPlayerMoves = false;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Converts the command.
         /// </summary>
         /// <param name="param">The parameter.</param>
@@ -422,13 +459,13 @@ namespace TennisHighlightsGUI
 
                         bool checkIfCancelRequested() => RequestedCancel;
 
-                        var ballsPerFrame = new VideoBallsExtractor(Settings, VideoInfo, ChosenFileLog,
-                                                                    checkIfCancelRequested, progressUpdateAction).GetBallsPerFrame().Result;
+                        var ballsPerFrame = VideoBallsExtractor.ExtractVideoData(Settings, VideoInfo, ChosenFileLog,
+                                                                                 checkIfCancelRequested, progressUpdateAction);
 
                         ChosenFileLog.Save();
 
                         if (!RequestedCancel)
-                        {
+                        {                            
                             RegenerateRallies(stopwatch.Elapsed.TotalSeconds);
                         }
                     }

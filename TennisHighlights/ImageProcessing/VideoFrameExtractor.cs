@@ -161,7 +161,7 @@ namespace TennisHighlights
 
                     while (freeWorker == null || _cacheUsedSize > _bufferSize)
                     {
-                        await Task.Delay(200);
+                        await Task.Delay(1);
 
                         freeWorker = _workers.FirstOrDefault(w => !w.IsBusy);
                     }
@@ -285,7 +285,7 @@ namespace TennisHighlights
                     }
                 }
 
-                await Task.Delay(200);
+                await Task.Delay(1);
             }
 
             return _frameCache[frameIndex].Mat;

@@ -1,4 +1,6 @@
 ﻿using System.Xml.Linq;
+using TennisHighlights.ImageProcessing.PlayerMoves;
+using TennisHighlights.Utils.PoseEstimation;
 
 namespace TennisHighlights
 {
@@ -34,21 +36,57 @@ namespace TennisHighlights
         /// Gets or sets a value indicating whether this instance is selected.
         /// </summary>
         public bool IsSelected { get; set; }
+        /// <summary>
+        /// Gets the move stats.
+        /// </summary>
+        public MoveStats MoveStats { get; private set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RallyEditData"/> class.
         /// </summary>
         /// <param name="originalIndex">Index of the original.</param>
-        public RallyEditData(string originalIndex) => OriginalIndex = originalIndex;
+        /// <param name="start">The start.</param>
+        /// <param name="stop">The stop.</param>
+        /// <param name="playerMovesData">The player moves data.</param>
+        public RallyEditData(string originalIndex, int start, int stop, PlayerMovesData playerMovesData) : this(originalIndex, start, stop)
+        {
+            SetMoveStats(playerMovesData);
+        }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="RallyEditData" /> class.
+        /// Initializes a new instance of the <see cref="RallyEditData"/> class.
+        /// </summary>
+        /// <param name="originalIndex">Index of the original.</param>
+        /// <param name="start">The start.</param>
+        /// <param name="stop">The stop.</param>
+        public RallyEditData(string originalIndex, int start, int stop)
+        {
+            OriginalIndex = originalIndex;
+            Start = start;
+            Stop = stop;
+        }
+
+        /// <summary>
+        /// Sets the move stats.
+        /// </summary>
+        /// <param name="playerMovesData">The player moves data.</param>
+        public void SetMoveStats(PlayerMovesData playerMovesData)
+        {
+            MoveStats = playerMovesData != null ? new MoveStats(playerMovesData) : null;
+
+            MoveStats.Update(Start, Stop);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RallyEditData"/> class.
         /// </summary>
         /// <param name="serializedRallyEditData">The serialized rally edit data.</param>
-        public RallyEditData(XElement serializedRallyEditData) : this(serializedRallyEditData.GetStringAttribute(XRallyKeys.OriginalIndex))
+        /// <param name="playerMovesData">The player moves data.</param>
+        public RallyEditData(XElement serializedRallyEditData, PlayerMovesData playerMovesData) 
+               : this(serializedRallyEditData.GetStringAttribute(XRallyKeys.OriginalIndex),
+                      serializedRallyEditData.GetIntAttribute(XRallyKeys.Start, -1),
+                      serializedRallyEditData.GetIntAttribute(XRallyKeys.Stop, -1), playerMovesData)
         {
-            Start = serializedRallyEditData.GetIntAttribute(XRallyKeys.Start, -1);
-            Stop = serializedRallyEditData.GetIntAttribute(XRallyKeys.Stop, -1);
             IsSelected = serializedRallyEditData.GetBoolAttribute(XRallyKeys.IsSelected, false);
         }
 

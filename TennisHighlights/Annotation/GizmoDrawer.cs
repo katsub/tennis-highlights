@@ -2,14 +2,10 @@
 using OpenCvSharp.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Linq;
-using TennisHighlights.ImageProcessing;
-using TennisHighlights.Moves;
-using TennisHighlights.Rallies;
-using TennisHighlights.Utils;
+using TennisHighlights.Utils.PoseEstimation;
+using TennisHighlights.Utils.PoseEstimation.Keypoints;
 
 namespace TennisHighlights.Annotation
 {
@@ -18,6 +14,29 @@ namespace TennisHighlights.Annotation
     /// </summary>
     public static class GizmoDrawer
     {
+        /// <summary>
+        /// Draws the move data.
+        /// </summary>
+        /// <param name="moveData">The move data.</param>
+        public static void DrawMoveData(MoveData moveData)
+        {
+            if (moveData != null)
+            {
+                var detectedFrame = moveData.FrameId;
+
+                var frame = FileManager.ReadTempBitmapFile(detectedFrame.ToString("D6") + ".jpg", FileManager.FrameFolder);
+
+                if (frame != null)
+                {
+                    ImageUtils.DrawText(frame, moveData.Label + " " + moveData.PlayerName, new Accord.Point(0, 30), 15, Brushes.Red);
+                }
+
+                FileManager.WriteTempFile(detectedFrame.ToString("D6") + ".jpg", frame, FileManager.FrameFolder);
+
+                frame.Dispose();
+            }
+        }
+
         /// <summary>
         /// Draws the gizmos and save image.
         /// </summary>

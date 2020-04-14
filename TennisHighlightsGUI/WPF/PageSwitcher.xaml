@@ -7,10 +7,10 @@
         WindowStartupLocation="CenterScreen"
         Title="Tennis Highlights"
         MinHeight="480"
-        Width="{Binding Width, Mode=TwoWay, FallbackValue=1280}"
-        MinWidth="{Binding Width, Mode=OneWay, FallbackValue=1280}"
-        MaxWidth="{Binding Width, Mode=OneWay, FallbackValue=1280}"
-        Height="{Binding Height, Mode=TwoWay, FallbackValue=720}">
+        Width="{Binding Width, Mode=TwoWay, FallbackValue=1920}"
+        MinWidth="{Binding Width, Mode=OneWay, FallbackValue=1920}"
+        MaxWidth="{Binding Width, Mode=OneWay, FallbackValue=1920}"
+        Height="{Binding Height, Mode=TwoWay, FallbackValue=1080}">
     <Grid>
     </Grid>
 </Window>

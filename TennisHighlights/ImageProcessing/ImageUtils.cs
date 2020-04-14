@@ -1,4 +1,5 @@
 ﻿using OpenCvSharp;
+using OpenCvSharp.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -10,6 +11,12 @@ using TennisHighlights;
 /// </summary>
 public class ImageUtils
 {
+    /// <summary>
+    /// Gets the keypoint links.
+    /// </summary>
+    private static readonly List<(int keypoint1, int keypoint2)> _keypointLinks = new List<(int keypoint1, int keypoint2)> { 
+        (3,4), (2,3), (0,1), (7,6), (6,5), (2,1), (5,1), (1, 14), (14, 8), (14, 11), (8,9), (9,10), (11, 12), (12, 13) }; 
+
     /// <summary>
     /// Builds the square mask mat.
     /// </summary>
@@ -44,12 +51,39 @@ public class ImageUtils
     }
 
     /// <summary>
+    /// Clusters the 2d points and returns their labels.
+    /// </summary>
+    /// <param name="points">The points.</param>
+    /// <param name="numberOfClusters">The number of clusters.</param>
+    /// <param name="error">The error.</param>
+    public static Mat Cluster2DPoints(List<Accord.Point> points, int numberOfClusters, out double error)
+    {
+        using (var samplesMat = new MatOfFloat(points.Count, 2))
+        using (var resultMat = new MatOfByte())
+        using (var resultMat2 = new MatOfByte())
+        {
+            var samplesIndexer = samplesMat.GetIndexer();
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                samplesIndexer[i, 0] = points[i].X;
+                samplesIndexer[i, 1] = points[i].Y;
+            }
+
+            error = Cv2.Kmeans(samplesMat, numberOfClusters, resultMat, TermCriteria.Both(5, 0.001), 3, KMeansFlags.PpCenters);
+
+            return resultMat;
+        }
+    }
+
+    /// <summary>
     /// Draws the circles.
     /// </summary>
     /// <param name="image">The image.</param>
     /// <param name="circles">The circles.</param>
     /// <param name="circleSize">Size of the circle.</param>
-    public static void DrawCircles(Bitmap image, List<Accord.Point> circles, float circleSize, Brush brush)
+    /// <param name="labelCircles">If true, labels the circles with their index</param>
+    public static void DrawCircles(Bitmap image, List<Accord.Point> circles, float circleSize, Brush brush, bool labelCircles = false)
     {
         if (circles == null) { return; }
 
@@ -57,6 +91,7 @@ public class ImageUtils
         {
             gr.SmoothingMode = SmoothingMode.AntiAlias;
 
+            var i = 0;
             foreach (var circle in circles)
             {
                 var minX = (int)Math.Max(0d, circle.X - circleSize);
@@ -65,9 +100,32 @@ public class ImageUtils
                 var maxY = (int)Math.Min(image.Height, circle.Y + circleSize);
 
                 var rect = new Rectangle(minX, minY, maxX - minX, maxY - minY);
+
                 gr.FillEllipse(brush, rect);
+
+                if (labelCircles)
+                {
+                    DrawText(gr, i.ToString(), circle - new Accord.Point(5,5), (int)circleSize, Brushes.Black);
+                }
+
+                i++;
             }
         }
+    }
+
+    /// <summary>
+    /// Draws the keypoints.
+    /// </summary>
+    /// <param name="keypoints">The keypoints.</param>
+    /// <param name="fileName">Name of the file.</param>
+    /// <param name="resizeMat">The resize mat.</param>
+    public static void DrawKeypoints(List<Accord.Point> keypoints, string fileName, Mat resizeMat)
+    {
+        var inputBitmap = BitmapConverter.ToBitmap(resizeMat);
+
+        DrawCircles(inputBitmap, keypoints, 7, Brushes.Red, true);
+
+        FileManager.WriteTempFile(fileName, inputBitmap, "keypoints");
     }
 
     /// <summary>
@@ -82,12 +140,30 @@ public class ImageUtils
     {
         using (Graphics g = Graphics.FromImage(image))
         {
-            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
-            g.DrawString(text,
-                         new Font("Tahoma", size),
-                         Brushes.Red,
-                         new PointF((float)position.X, (float)position.Y));
+            DrawText(g, text, position, size, brush);
         }
+    }
+
+    /// <summary>
+    /// Draws the text.
+    /// </summary>
+    /// <param name="g">The g.</param>
+    /// <param name="text">The text.</param>
+    /// <param name="position">The position.</param>
+    /// <param name="size">The size.</param>
+    /// <param name="brush">The brush.</param>
+    private static void DrawText(Graphics g, string text, Accord.Point position, int size, Brush brush = null)
+    {
+        if (brush == null)
+        {
+            brush = Brushes.Red;
+        }
+
+        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+        g.DrawString(text,
+                     new Font("Tahoma", size),
+                     brush,
+                     new PointF((float)position.X, (float)position.Y));
     }
 
     /// <summary>

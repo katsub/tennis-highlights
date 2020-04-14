@@ -11,6 +11,7 @@ using System.Windows;
 using System.Windows.Controls;
 using TennisHighlights;
 using TennisHighlights.ImageProcessing;
+using TennisHighlights.ImageProcessing.PlayerMoves;
 using TennisHighlights.Utils;
 using TennisHighlights.VideoCreation;
 
@@ -230,6 +231,13 @@ namespace TennisHighlightsGUI
                 {
                     _selectedRally = value;
 
+                    if (_selectedRally?.Data?.MoveStats != null)
+                    {
+                        ForegroundForehands = _selectedRally.Data.MoveStats.ForegroundForehands;
+                        ForegroundBackhands = _selectedRally.Data.MoveStats.ForegroundBackhands;
+                        ForegroundServes = _selectedRally.Data.MoveStats.ForegroundServes;
+                    }
+
                     //If it's null we're gonna set it again soon to a non-null value: wait till it comes back
                     if (value != null)
                     {
@@ -237,6 +245,109 @@ namespace TennisHighlightsGUI
 
                         OnPropertyChanged();
                     }
+                }
+            }
+        }
+
+        private int _foregroundForehands;
+        /// <summary>
+        /// Gets or sets the foreground forehands.
+        /// </summary>
+        public int ForegroundForehands
+        {
+            get => _foregroundForehands;
+            set
+            {
+                if (_foregroundForehands != value)
+                {
+                    _foregroundForehands = value;
+
+                    OnPropertyChanged();
+                }
+            }
+        }
+        private int _foregroundBackhands;
+        /// <summary>
+        /// Gets or sets the foreground backhands.
+        /// </summary>
+        public int ForegroundBackhands
+        {
+            get => _foregroundBackhands;
+            set
+            {
+                if (_foregroundBackhands != value)
+                {
+                    _foregroundBackhands = value;
+
+                    OnPropertyChanged();
+                }
+            }
+        }
+        private int _foregroundServes;
+        /// <summary>
+        /// Gets or sets the foreground serves.
+        /// </summary>
+        public int ForegroundServes
+        {
+            get => _foregroundServes;
+            set
+            {
+                if (_foregroundServes != value)
+                {
+                    _foregroundServes = value;
+
+                    OnPropertyChanged();
+                }
+            }
+        }
+        private int _backgroundForehands;
+        /// <summary>
+        /// Gets or sets the background forehands.
+        /// </summary>
+        public int BackgroundForehands
+        {
+            get => _backgroundForehands;
+            set
+            {
+                if (_backgroundForehands != value)
+                {
+                    _backgroundForehands = value;
+
+                    OnPropertyChanged();
+                }
+            }
+        }
+        private int _backgroundBackhands;
+        /// <summary>
+        /// Gets or sets the foreground backhands.
+        /// </summary>
+        public int BackgroundBackhands
+        {
+            get => _backgroundBackhands;
+            set
+            {
+                if (_backgroundBackhands != value)
+                {
+                    _backgroundBackhands = value;
+
+                    OnPropertyChanged();
+                }
+            }
+        }
+        private int _backgroundServes;
+        /// <summary>
+        /// Gets or sets the foreground serves.
+        /// </summary>
+        public int BackgroundServes
+        {
+            get => _backgroundServes;
+            set
+            {
+                if (_backgroundServes != value)
+                {
+                    _backgroundServes = value;
+
+                    OnPropertyChanged();
                 }
             }
         }
@@ -389,6 +500,13 @@ namespace TennisHighlightsGUI
 
             Rallies.CollectionChanged += Rallies_CollectionChanged;
 
+            var framesPerSample = PlayerMovementAnalyser.GetFramesPerSample(MainVM.VideoInfo.FrameRate);
+         //   var (foregroundMoves, backgroundMoves) = TennisMoveDetector.GetPlayerMovesPerFrame(MainVM.VideoInfo, MainVM.ChosenFileLog);
+
+           // var playerMovesData = new PlayerMovesData(framesPerSample, foregroundMoves, backgroundMoves);
+
+            
+
             #region Commands
             ExportCommand = new Command((param) =>
             {
@@ -489,12 +607,10 @@ namespace TennisHighlightsGUI
                     return;
                 }
 
-                var joinedRally = new RallyEditViewModel(new RallyEditData(SelectedRally.OriginalIndex + "_" + nextRally.OriginalIndex)
-                {
-                    Start = (int)Math.Min(SelectedRally.Start, nextRally.Start),
-                    Stop = (int)Math.Max(SelectedRally.Stop, nextRally.Stop)
-                },
-                DeltaFrames, _videoInfo.TotalFrames, _videoInfo.FrameRate, () => MainVM.ChosenFileLog.Save());
+                var joinedRally = new RallyEditViewModel(new RallyEditData(SelectedRally.OriginalIndex + "_" + nextRally.OriginalIndex,
+                                                                           (int)Math.Min(SelectedRally.Start, nextRally.Start),
+                                                                           (int)Math.Max(SelectedRally.Stop, nextRally.Stop)),
+                                                         DeltaFrames, _videoInfo.TotalFrames, _videoInfo.FrameRate, () => MainVM.ChosenFileLog.Save());
 
                 Rallies.Insert(selectedRallyIndex, joinedRally);
                 MainVM.ChosenFileLog.Rallies.Insert(selectedRallyIndex, joinedRally.Data);
@@ -514,19 +630,11 @@ namespace TennisHighlightsGUI
 
                 if (result != MessageBoxResult.Yes) { return; }
 
-                var firstRally = new RallyEditViewModel(new RallyEditData(SelectedRally.OriginalIndex + ".1")
-                {
-                    Start = SelectedRally.Start,
-                    Stop = CurrentPosition
-                },
-                DeltaFrames, _videoInfo.TotalFrames, _videoInfo.FrameRate, () => MainVM.ChosenFileLog.Save()) ;
+                var firstRally = new RallyEditViewModel(new RallyEditData(SelectedRally.OriginalIndex + ".1", SelectedRally.Start, CurrentPosition),
+                                                        DeltaFrames, _videoInfo.TotalFrames, _videoInfo.FrameRate, () => MainVM.ChosenFileLog.Save());
 
-                var secondRally = new RallyEditViewModel(new RallyEditData(SelectedRally.OriginalIndex + ".2")
-                {
-                    Start = CurrentPosition,
-                    Stop = SelectedRally.Stop
-                },
-                DeltaFrames, _videoInfo.TotalFrames, _videoInfo.FrameRate, () => MainVM.ChosenFileLog.Save());
+                var secondRally = new RallyEditViewModel(new RallyEditData(SelectedRally.OriginalIndex + ".2", CurrentPosition, SelectedRally.Stop),
+                                                         DeltaFrames, _videoInfo.TotalFrames, _videoInfo.FrameRate, () => MainVM.ChosenFileLog.Save());
 
                 var selectedRallyIndex = Rallies.IndexOf(SelectedRally);
 

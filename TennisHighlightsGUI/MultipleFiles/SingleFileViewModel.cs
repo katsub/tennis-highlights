@@ -1,4 +1,6 @@
-﻿namespace TennisHighlightsGUI.MultipleFiles
+﻿using TennisHighlights;
+
+namespace TennisHighlightsGUI.MultipleFiles
 {
     /// <summary>
     /// The single file view model.

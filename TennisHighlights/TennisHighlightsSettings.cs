@@ -46,12 +46,13 @@ namespace TennisHighlights
         public const string LimitMaxVideoBitrate = "LimitMaxVideoBitrate";
         public const string PreciseTrimming = "PreciseTrimming";
         public const string RallyPlaySpeed = "RallyPlaySpeed";
+        public const string TrackPlayerMoves = "TrackPlayerMoves";
     }
 
     /// <summary>
     /// The general settings
     /// </summary>
-    public class GeneralSettings
+    public class GeneralSettings : ViewModelBase
     {
         /// <summary>
         /// Gets or sets the rally play speed (used when watching rallies for selecting them).
@@ -61,6 +62,23 @@ namespace TennisHighlights
         /// Gets or sets a value indicating whether [precise trimming].
         /// </summary>
         public bool PreciseTrimming { get; set; }
+        private bool _trackPlayerMoves;
+        /// <summary>
+        /// Gets or sets a value indicating whether [track player moves].
+        /// </summary>
+        public bool TrackPlayerMoves
+        {
+            get => _trackPlayerMoves;
+            set
+            {
+                if (_trackPlayerMoves != value)
+                {
+                    _trackPlayerMoves = value;
+
+                    OnPropertyChanged();
+                }
+            }
+        }
         /// <summary>
         /// The multiple files paths
         /// </summary>
@@ -104,7 +122,7 @@ namespace TennisHighlights
         /// <summary>
         /// Gets the frames per backup.
         /// </summary>
-        public int FramesPerBackup { get; } = 3000;
+        public int FramesPerBackup { get; } = 300;
         /// <summary>
         /// Gets a value indicating whether [filter rallies by duration].
         /// </summary>
@@ -112,7 +130,7 @@ namespace TennisHighlights
         /// <summary>
         /// Gets a value indicating whether [draw gizmos].
         /// </summary>
-        public bool DrawGizmos { get; }
+        public bool DrawGizmos { get; set; }
         /// <summary>
         /// Gets a value indicating whether [low memory mode].
         /// </summary>
@@ -200,6 +218,7 @@ namespace TennisHighlights
             FFmpegPath = generalSettings.GetStringElementValue(SettingsKeys.FFmpegPath);
             PreciseTrimming = generalSettings.GetBoolElementValue(SettingsKeys.PreciseTrimming, true);
             RallyPlaySpeed = generalSettings.GetDoubleElementValue(SettingsKeys.RallyPlaySpeed, 2d);
+            TrackPlayerMoves = generalSettings.GetBoolElementValue(SettingsKeys.TrackPlayerMoves, false);
 
             if (!File.Exists(FFmpegPath))
             {
@@ -246,6 +265,7 @@ namespace TennisHighlights
             xElement.AddElementWithValue(SettingsKeys.PreciseTrimming, PreciseTrimming);
             xElement.AddElementWithValue(SettingsKeys.RallyPlaySpeed, RallyPlaySpeed);
             xElement.AddElementWithValue(SettingsKeys.LowMemoryMode, LowMemoryMode);
+            xElement.AddElementWithValue(SettingsKeys.TrackPlayerMoves, TrackPlayerMoves);
 
             return xElement;
         }

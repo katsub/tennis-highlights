@@ -90,6 +90,20 @@
             <StackPanel Grid.Row="3"
                         Margin="0,5,0,0">
                 <TextBlock FontWeight="Bold"
+                           Text="RALLY STATS" />
+                <TextBlock FontWeight="DemiBold"
+                           Text="Foreground player: " />
+                <Grid>
+                    <TextBlock Text="Forehands: " />
+                    <TextBlock HorizontalAlignment="Right"
+                               Text="{Binding ForegroundForehands}" />
+                </Grid>
+                <Grid>
+                    <TextBlock Text="Backhands: " />
+                    <TextBlock HorizontalAlignment="Right"
+                               Text="{Binding ForegroundBackhands}" />
+                </Grid>
+                <TextBlock FontWeight="Bold"
                            Text="STATS" />
                 <Grid>
                     <TextBlock Text="Selected rallies: " />

@@ -7,7 +7,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
 using TennisHighlights.Annotation;
+using TennisHighlights.ImageProcessing.PlayerMoves;
 using TennisHighlights.Utils;
+using TennisHighlights.Utils.PoseEstimation;
 
 namespace TennisHighlights.ImageProcessing
 {
@@ -16,8 +18,12 @@ namespace TennisHighlights.ImageProcessing
     /// the video), the frameBallExtractors (which extract balls from the frames) and the background extractor (which builds backgrounds that are used in 
     /// the ball extraction process).
     /// </summary>
-    public class VideoBallsExtractor
+    public class VideoBallsExtractor 
     {
+        /// <summary>
+        /// The player movement analyser
+        /// </summary>
+        private readonly PlayerMovementAnalyser _playerMovementAnalyser;
         /// <summary>
         /// The balls per frame
         /// </summary>
@@ -108,6 +114,8 @@ namespace TennisHighlights.ImageProcessing
 
             _targetSize = settings.General.GetTargetSize(_videoInfo);
 
+            _playerMovementAnalyser = new PlayerMovementAnalyser(_videoInfo);
+
             FrameBallExtractor.AllocateResolutionDependentMats();
 
             _timer = new Timer
@@ -119,21 +127,46 @@ namespace TennisHighlights.ImageProcessing
                 Enabled = true
             };
 
-            void onExtractionOver(int frameId, List<Accord.Point> balls)
+            void onExtractionOver(int frameId,  ExtractionOverArguments args)
             {
                 //Not thread safe, but if used only for display it's okay
                 FramesProcessed++;
 
-                if (balls != null && balls.Count > 0)
+                if (args.Balls != null && args.Balls.Count > 0)
                 {
-                    _ballsPerFrame[frameId] = balls;
+                    _ballsPerFrame[frameId] = args.Balls;
+                }
+
+                if (settings.General.TrackPlayerMoves)
+                {
+                    _playerMovementAnalyser.AddFrame(frameId, args.OriginalMat, args.Players, args.KeypointResizeMat);
                 }
             }
 
             FrameBallExtractor.SetSize(_targetSize);
 
             _ballExtractors = Enumerable.Range(1, _settings.General.BallExtractionWorkers)
-                                        .Select(o => new FrameBallExtractor(settings.BallDetection, settings.General.DrawGizmos, !settings.General.DisableImagePreview, onExtractionOver)).ToList();
+                                        .Select(o => new FrameBallExtractor(settings.BallDetection, settings.General.DrawGizmos, !settings.General.DisableImagePreview, 
+                                                                            settings.General.TrackPlayerMoves, onExtractionOver)).ToList();
+        }
+
+        /// <summary>
+        /// Extracts the video data.
+        /// </summary>
+        /// <param name="settings">The settings.</param>
+        /// <param name="videoInfo">The video information.</param>
+        /// <param name="processedFileLog">The processed file log.</param>
+        /// <param name="checkIfCancelRequested">The check if cancel requested.</param>
+        /// <param name="progressUpdateAction">The progress update action.</param>
+        public static Dictionary<int, List<Accord.Point>>
+                      ExtractVideoData(TennisHighlightsSettings settings, VideoInfo videoInfo, ProcessedFileLog processedFileLog,
+                                       Func<bool> checkIfCancelRequested = null, Action<Bitmap, int> progressUpdateAction = null)
+        {
+            var videoBallsExtractor = new VideoBallsExtractor(settings, videoInfo, processedFileLog, checkIfCancelRequested, progressUpdateAction);
+
+            var ballsPerFrame = videoBallsExtractor.GetBallsPerFrame().Result;
+
+            return ballsPerFrame;
         }
 
         /// <summary>
@@ -194,7 +227,7 @@ namespace TennisHighlights.ImageProcessing
                     warned = true;
                 }
 
-                await Task.Delay(1000);
+                await Task.Delay(1);
             }
 
             Task.Run(() => extractor.ExtractAndDrawGizmos());
@@ -317,7 +350,7 @@ namespace TennisHighlights.ImageProcessing
                             //Serialize balls periodically so we won't lose all the work in case the application is suddenly stopped/closed
                             if (i % _settings.General.FramesPerBackup == 0 && calculateBalls)
                             {
-                                SerializeBalls();
+                                UpdateLog();
                             }
                         }
 
@@ -331,7 +364,7 @@ namespace TennisHighlights.ImageProcessing
 
             if (i > _processedFileLog.LastParsedFrame) { _processedFileLog.LastParsedFrame = i; }
 
-            SerializeBalls();
+            UpdateLog();
             //Needs to be serialized then deserialized so we have a file that yields exactly the same results we're gonna have in that call
             _processedFileLog.ReloadBallsFromSerialization();
 
@@ -362,10 +395,32 @@ namespace TennisHighlights.ImageProcessing
         }
 
         /// <summary>
-        /// Serializes the balls.
+        /// Serializes the players.
         /// </summary>
-        private void SerializeBalls()
+        private void SerializePlayers()
         {
+            void SerializeSinglePlayer(PlayerFrameData[] playerFrames, Dictionary<int, PlayerFrameData> logPlayerFrames)
+            {
+                for (int index = 0; index < playerFrames.Length; index++)
+                {
+                    var frame = playerFrames[index];
+
+                    if (frame != null && !logPlayerFrames.ContainsKey(index))
+                    {
+                        logPlayerFrames.Add(index, frame);
+                    }
+                }
+            }
+
+            SerializeSinglePlayer(_playerMovementAnalyser.ForegroundPlayerFrames, _processedFileLog.ForegroundPlayerKeypoints);
+        }
+
+        /// <summary>
+        /// Updates the log.
+        /// </summary>
+        private void UpdateLog()
+        {
+            //Serialize balls
             for (int index = 0; index < _ballsPerFrame.Length; index++)
             {
                 var value = _ballsPerFrame[index];
@@ -379,6 +434,8 @@ namespace TennisHighlights.ImageProcessing
             var lastKey = _processedFileLog.Balls.Last().Key;
             
             if (lastKey > _processedFileLog.LastParsedFrame) { _processedFileLog.LastParsedFrame = lastKey; }
+
+            SerializePlayers();
 
             _processedFileLog.Save();
         }

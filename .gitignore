@@ -10,3 +10,7 @@ bin
 obj
 bin
 obj
+/TennisHighlights/Utils/PoseEstimation/KeypointExtractor.cs
+/TennisHighlights/Utils/PoseEstimation/PoseEstimationTest.cs
+/TennisHighlightsGUI/WPF/ViewModelBase.cs
+/TennisHighlights/PoseEstimationFiles/pose_iter_160000.zip

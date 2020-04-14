@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using TennisHighlights.Annotation;
 using TennisHighlights.ImageProcessing;
+using TennisHighlights.Utils.PoseEstimation.Keypoints;
 
 namespace TennisHighlights
 {
@@ -16,6 +17,14 @@ namespace TennisHighlights
     public class FrameBallExtractor : IDisposable
     {
         /// <summary>
+        /// The keypoint extractor
+        /// </summary>
+        private readonly KeypointExtractor _keypointExtractor = new KeypointExtractor();
+        /// <summary>
+        /// The print ball detection gizmos
+        /// </summary>
+        private static readonly bool _printBallDetectionGizmos = false;
+        /// <summary>
         /// The maximum double check ball center squared distance
         /// </summary>
         private static readonly ResolutionDependentParameter _maxDoubleCheckBallCenterSquaredDistance = new ResolutionDependentParameter(225d, 2d);
@@ -23,6 +32,14 @@ namespace TennisHighlights
         /// The draw gizmos. Debug option that allows us to see each frame with gizmos coresponding to detected players and balls in the temp folder
         /// </summary>
         private readonly bool _drawGizmos;
+        /// <summary>
+        /// The keypoint extraction resize mat
+        /// </summary>
+        private readonly MatOfByte3 _keypointExtractionResizeMat = new MatOfByte3(PoseEstimationBuilder.TargetSize);
+        /// <summary>
+        /// If true, tracks the player moves
+        /// </summary>
+        private readonly bool _trackPlayerMoves;
         /// <summary>
         /// The draw previews
         /// </summary>
@@ -34,7 +51,7 @@ namespace TennisHighlights
         /// <summary>
         /// The on extraction over
         /// </summary>
-        private readonly Action<int, List<Accord.Point>> _onExtractionOver;
+        private readonly Action<int, ExtractionOverArguments> _onExtractionOver;
         /// <summary>
         /// The current frame identifier
         /// </summary>
@@ -153,10 +170,13 @@ namespace TennisHighlights
         /// </summary>
         /// <param name="settings">The settings.</param>
         /// <param name="drawGizmos">if set to <c>true</c> [draw gizmos].</param>
+        /// <param name="trackPlayerMoves">if set to true, tracks player moves.</param>
         /// <param name="drawPreviews">if set to <c>true</c> [draw previews].</param>
         /// <param name="onExtractionOver">The on extraction over.</param>
-        public FrameBallExtractor(BallDetectionSettings settings, bool drawGizmos, bool drawPreviews, Action<int, List<Accord.Point>> onExtractionOver)
+        public FrameBallExtractor(BallDetectionSettings settings, bool drawGizmos, bool drawPreviews, bool trackPlayerMoves,
+                                  Action<int, ExtractionOverArguments> onExtractionOver)
         {
+            _trackPlayerMoves = trackPlayerMoves;
             _drawGizmos = drawGizmos;
             _drawPreviews = drawPreviews;
             _settings = settings;
@@ -286,8 +306,9 @@ namespace TennisHighlights
         /// <summary>
         /// Extracts the balls from the assigned current mat.
         /// </summary>
-        public List<Accord.Point> Extract(out Mat gizmoMat)
+        public List<Accord.Point> Extract(out Mat gizmoMat, out List<ConnectedComponents.Blob> playerBlobs)
         {
+            playerBlobs = null;
             gizmoMat = null;
             _currentFrameId = ExtractionArguments.FrameId;
 
@@ -304,7 +325,7 @@ namespace TennisHighlights
             //no erosion allowed: must ensure the player gets fully connected, must reduce the chance of its parts being perceived as balls
             Cv2.Dilate(_timeDeltaMat, _dilatedMat, _connectionDilationCircle);
 
-            if (_drawGizmos)
+            if (_drawGizmos && _printBallDetectionGizmos)
             {
                 FileManager.WriteTempFile(_currentFrameId.ToString("D6") + "_timeDelta.jpeg", _dilatedMat, FileManager.FrameFolder);
             }
@@ -321,13 +342,13 @@ namespace TennisHighlights
                 Cv2.Erode(_bgDeltaMat, _dilatedMat, _playerErosionCircle);
                 Cv2.Dilate(_dilatedMat, _playerBallMat, _playerDilationCircle);
 
-                if (_drawGizmos)
+                if (_drawGizmos && _printBallDetectionGizmos)
                 {
                     FileManager.WriteTempFile(_currentFrameId.ToString("D6") + "_playerBall.jpeg", _playerBallMat, FileManager.FrameFolder);
                 }
 
                 //Remove all big blobs: if the balls is far away and on its own, it won't be part of a player / big blob
-                var hadPlayers = LeaveOnlyBigBlobs(_playerBallMat);
+                var hadPlayers = LeaveOnlyBigBlobs(_playerBallMat, out playerBlobs);
 
                 //Do some light noise removal on the time delta mat: undesirable regions such as trees leaves will still be visible, but so will the ball
                 Cv2.Erode(_timeDeltaMat, _erodedMat, _lightErosionCircle);
@@ -361,7 +382,7 @@ namespace TennisHighlights
                             {
                                 gizmoIndexer[j, i] = new Vec3b(255, 0, 255);
                             }
-                            else
+                            else 
                             {
                                 gizmoIndexer[j, i] = hadPlayers && playerOutlineIndexer[j, i] > 0 ? new Vec3b(255, 0, 0)
                                                                                                   : currentFrameIndexer[j, i];
@@ -372,7 +393,7 @@ namespace TennisHighlights
                     gizmoMat = _gizmoMat;
                 }
 
-                if (_drawGizmos)
+                if (_drawGizmos && _printBallDetectionGizmos)
                 {
                     FileManager.WriteTempFile(_currentFrameId.ToString("D6") + "_doubleCheck.jpeg", _dilatedMat, FileManager.FrameFolder);
                 }
@@ -380,7 +401,7 @@ namespace TennisHighlights
                 //Balls was initially populated from all the balls (good size, roundish, away from moving objects) from the very dilated time delta mat. The big dilation ensures that
                 //we get one ball instead of multiple moving parts of that ball (the ball is small so the dilation connects its moving parts)
                 //It also got a BitwiseAnd with the bgDeltaMat, so this filters another bit of fake balls, because noise is unlikely to appear in both
-                //deltas
+                //deltas    
                 //There was no erosion in that mat, so noise also constitutes potential balls (GetPotentialBalls())
                 //We have built another mat out of timeDeltaMat (the last _dilatedMat) that has been eroded, so it has less noise, and all the big blobs
                 //have been subtracted from it, so players and regions with lots of "balls" (like clusters of leaves)
@@ -396,8 +417,11 @@ namespace TennisHighlights
         /// Removes everything but the player blobs.
         /// </summary>
         /// <param name="mat">The mat.</param>
-        private bool LeaveOnlyBigBlobs(Mat mat)
+        /// <param name="players">The players.</param>
+        private bool LeaveOnlyBigBlobs(Mat mat, out List<ConnectedComponents.Blob> players)
         {
+            players = null;
+
             var minPlayerArea = _settings.MinPlayerArea.Value;
 
             var hadPlayers = false;
@@ -417,6 +441,8 @@ namespace TennisHighlights
 
                 hadPlayers = true;
 
+                players = blobsToKeep.ToList();
+
                 components.FilterBlobs(_ones, mat, blobsToKeep);
             }
 
@@ -430,7 +456,7 @@ namespace TennisHighlights
         {
             var frameId = ExtractionArguments.FrameId;
 
-            var balls = Extract(out var gizmoMat);
+            var balls = Extract(out var gizmoMat, out var playersBlobs);
 
             if (ExtractionArguments.OnGizmoDrawn != null)
             {
@@ -446,9 +472,12 @@ namespace TennisHighlights
                 ExtractionArguments.OnGizmoDrawn(frame);
             }
 
-            ExtractionArguments = null;
+            _onExtractionOver(frameId, new ExtractionOverArguments(balls, playersBlobs, ExtractionArguments.CurrentMat, _keypointExtractionResizeMat, _keypointExtractor));
 
-            _onExtractionOver(frameId, balls);
+            //Setting arguments to null will make IsBusy false, signaling that this frame can be disposed, and that this extractor is available for
+            //a new extraction
+            //Must be done after on extraction over, so the player tracking can use the frame, if needed
+            ExtractionArguments = null;
 
             if (_drawGizmos && gizmoMat != null)
             {
@@ -480,6 +509,7 @@ namespace TennisHighlights
             _labels.Dispose();
             _centroids.Dispose();
             _stats.Dispose();
+            _keypointExtractionResizeMat.Dispose();
         }
     }
 }

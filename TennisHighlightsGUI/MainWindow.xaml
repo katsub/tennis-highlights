@@ -155,6 +155,11 @@
                     </StackPanel>
                     <CheckBox IsChecked="{Binding Settings.General.DisableImagePreview}"
                               Content="Disable image preview" />
+                    <CheckBox IsChecked="{Binding Settings.General.DrawGizmos}"
+                            Visibility="{Binding IsInDebugMode, Converter={StaticResource boolToVis}}"
+                              Content="Draw gizmos" />
+                    <CheckBox IsChecked="{Binding Settings.General.TrackPlayerMoves}"
+                              Content="Track player moves" />
                     <CheckBox IsChecked="{Binding Settings.General.LowMemoryMode}"
                               Content="Low memory mode"
                               ToolTip="Needed if the used PC has less than 8 GB of RAM." />

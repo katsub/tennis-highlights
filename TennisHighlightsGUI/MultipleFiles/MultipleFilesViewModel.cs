@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using TennisHighlights;
 using TennisHighlights.ImageProcessing;
+using TennisHighlights.ImageProcessing.PlayerMoves;
 using TennisHighlights.Utils;
 using TennisHighlights.VideoCreation;
 
@@ -295,8 +296,7 @@ namespace TennisHighlightsGUI.MultipleFiles
                                                      ElapsedSeconds.TotalSeconds);
                                 }
 
-                                var ballsPerFrame = new VideoBallsExtractor(settings, videoInfo, chosenFileLog,
-                                                                            checkIfCancelRequested, progressUpdateAction).GetBallsPerFrame().Result;
+                                var ballsPerFrame = VideoBallsExtractor.ExtractVideoData(settings, videoInfo, chosenFileLog, checkIfCancelRequested, progressUpdateAction);
 
                                 chosenFileLog.Save();
 

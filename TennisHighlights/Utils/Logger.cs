@@ -51,7 +51,6 @@ namespace TennisHighlights.Utils
                 var fi = new FileInfo(LogPath);
                 if (fi.Length > iMaxLogLength) // if the log file length is already too long
                 {
-                    var totalLines = 0;
                     var file = File.ReadAllLines(LogPath);
                     var lineArray = file.ToList();
                     var amountToCull = (int)(lineArray.Count - keepLines);

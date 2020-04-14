@@ -2,8 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Xml.Linq;
 using TennisHighlights.ImageProcessing;
+using TennisHighlights.ImageProcessing.PlayerMoves;
 using TennisHighlights.Utils;
 
 namespace TennisHighlights
@@ -27,6 +29,14 @@ namespace TennisHighlights
         public const string BallLog = "BallLog";
         public const string RallyLog = "RallyLog";
         public const string Rally = "Rally";
+        public const string KeypointsLog = "KeypointsLog";
+        public const string Keypoints = "Keypoints";
+        public const string FrameId = "FrameId";
+        public const string TopY = "TopY";
+        public const string LeftX = "LeftX";
+        public const string FrameKeypoints = "FrameKeypoints";
+        public const string ForegroundPlayer = "ForegroundPlayer";
+        public const string BackgroundPlayer = "BackgroundPlayer";
         public const string Signature = "Signature";
         public const string LastParsedFrame = "LastParsedFrame";
     }
@@ -41,6 +51,10 @@ namespace TennisHighlights
         /// </summary>
         private const string _processedFileLogCacheFolder = "ProcessedFileLogCache\\";
 
+        /// <summary>
+        /// The video information
+        /// </summary>
+        private readonly VideoInfo _videoInfo;
         /// <summary>
         /// The file name
         /// </summary>
@@ -86,6 +100,11 @@ namespace TennisHighlights
         public Dictionary<int, List<Point>> Balls { get; } = new Dictionary<int, List<Point>>();
 
         /// <summary>
+        /// Gets the foreground player keypoints.
+        /// </summary>
+        public Dictionary<int, PlayerFrameData> ForegroundPlayerKeypoints { get; } = new Dictionary<int, PlayerFrameData>();
+
+        /// <summary>
         /// Gets the rallies.
         /// </summary>
         public List<RallyEditData> Rallies { get; } = new List<RallyEditData>();
@@ -100,6 +119,7 @@ namespace TennisHighlights
         {
             var file = new FileInfo(filePath);
 
+            _videoInfo = new VideoInfo(filePath);
             _name = file.Name;
             _size = file.Length;
             _modifiedDate = file.LastWriteTime;
@@ -118,8 +138,11 @@ namespace TennisHighlights
         /// Initializes a new instance of the <see cref="ProcessedFileLog"/> class.
         /// </summary>
         /// <param name="document">The document.</param>
-        private ProcessedFileLog(XDocument document)
+        /// <param name="videoInfo">The video info.</param>
+        private ProcessedFileLog(XDocument document, VideoInfo videoInfo)
         {
+            _videoInfo = videoInfo;
+
             if (document != null)
             {
                 var fileInfo = document.Root.Element(LogKeys.FileInfo);
@@ -158,7 +181,48 @@ namespace TennisHighlights
                     Balls = FrameDataSerializer.ParseBallLog(ballLog.Value);
                 }
 
+                var keypointsLog = document.Root.Element(LogKeys.KeypointsLog);
+
+                if (keypointsLog != null)
+                {
+                    var foregroundKeypointsLog = keypointsLog.Element(LogKeys.ForegroundPlayer);
+                    var backgroundKeypointsLog = keypointsLog.Element(LogKeys.BackgroundPlayer);
+
+                    static void DeserializePlayerKeypoints(XElement playerKeypointsLog, Dictionary<int, PlayerFrameData> playerKeypoints)
+                    {
+                        foreach (var xKeypoint in playerKeypointsLog.Elements(LogKeys.FrameKeypoints))
+                        {
+                            var key = xKeypoint.GetIntAttribute(LogKeys.FrameId);
+                            var topY = xKeypoint.GetIntAttribute(LogKeys.TopY);
+                            var leftX = xKeypoint.GetIntAttribute(LogKeys.LeftX);
+                            var valueString = xKeypoint.GetStringAttribute(LogKeys.Keypoints);
+                            var splitValueString = valueString.Split(";");
+
+                            try
+                            {
+                                var value = splitValueString.Select(p => float.Parse(p)).ToArray();
+                                var playerFrameData = new PlayerFrameData(value, null, new Accord.Point(leftX,topY));
+
+                                playerKeypoints.Add(key, playerFrameData);
+                            }
+                            catch
+                            {
+                                Logger.Log(LogType.Error, "Couldn't deserialize keypoint " + xKeypoint);
+                            }
+                        }
+                    }
+
+                    if (foregroundKeypointsLog != null)
+                    {
+                        ForegroundPlayerKeypoints = new Dictionary<int, PlayerFrameData>();
+
+                        DeserializePlayerKeypoints(foregroundKeypointsLog, ForegroundPlayerKeypoints);
+                    }
+                }
+
                 var rallyLog = document.Root.Element(LogKeys.RallyLog);
+
+                var playerMovesData = new PlayerMovesData(_videoInfo, this);
 
                 Rallies = new List<RallyEditData>();
 
@@ -166,7 +230,7 @@ namespace TennisHighlights
                 {
                     foreach (var rally in rallyLog.Elements(LogKeys.Rally))
                     {
-                        Rallies.Add(new RallyEditData(rally));
+                        Rallies.Add(new RallyEditData(rally, playerMovesData));
                     }
                 }
             }
@@ -176,12 +240,13 @@ namespace TennisHighlights
         /// Initializes a new instance of the <see cref="ProcessedFileLog" /> class.
         /// </summary>
         /// <param name="logPath">The file path.</param>
-        private ProcessedFileLog(string logPath) : this(XDocument.Load(logPath)) => _logPath = logPath;
+        /// <param name="videoInfo">The video info.</param>
+        private ProcessedFileLog(string logPath, VideoInfo videoInfo) : this(XDocument.Load(logPath), videoInfo) => _logPath = logPath;
 
         /// <summary>
         /// Clones this instance.
         /// </summary>
-        public ProcessedFileLog Clone() => new ProcessedFileLog(XDocument.Parse(Serialize()));
+        public ProcessedFileLog Clone() => new ProcessedFileLog(XDocument.Parse(Serialize()), _videoInfo);
 
         /// <summary>
         /// Parses the rallies.
@@ -202,6 +267,8 @@ namespace TennisHighlights
 
             Rallies.Clear();
 
+            var playerMovesData = new PlayerMovesData(videoInfo, this);
+
             var i = 0;
             foreach (var rally in rallies)
             {
@@ -211,7 +278,7 @@ namespace TennisHighlights
                 var rallyEnd = (int)Math.Min(videoInfo.TotalFrames, rally.LastBall.FrameIndex + settings.General.SecondsAfterRally
                                                                                                 * videoInfo.FrameRate);
 
-                Rallies.Add(new RallyEditData(i.ToString()) { Start = rallyStart, Stop = rallyEnd });
+                Rallies.Add(new RallyEditData(i.ToString(), rallyStart, rallyEnd, playerMovesData));
                 i++;
             }
 
@@ -225,7 +292,7 @@ namespace TennisHighlights
         {
             Balls.Clear();
 
-            var deserializedBalls = new ProcessedFileLog(_logPath).Balls;
+            var deserializedBalls = new ProcessedFileLog(_logPath, _videoInfo).Balls;
 
             foreach (var ball in deserializedBalls)
             {
@@ -261,9 +328,18 @@ namespace TennisHighlights
 
                 foreach (var file in Directory.GetFiles(logFolder))
                 {
-                    if (GetFileSignatureFromLogFile(file) == currentFileSignature)
+                    try
                     {
-                        processedFileLogPath = file;
+                        if (GetFileSignatureFromLogFile(file) == currentFileSignature)
+                        {
+                            processedFileLogPath = file;
+                        }
+                    }
+                    catch { }
+
+                    if (processedFileLogPath != null)
+                    {
+                        break;
                     }
                 }
 
@@ -275,7 +351,7 @@ namespace TennisHighlights
                     return new ProcessedFileLog(analysedVideoPath, logPath);
                 }
 
-                return new ProcessedFileLog(processedFileLogPath);
+                return new ProcessedFileLog(processedFileLogPath, new VideoInfo(analysedVideoPath));
             }
 
             return null;
@@ -291,7 +367,7 @@ namespace TennisHighlights
             //saved a fully converted log, which will be erased if we don't do that check
             if (File.Exists(_logPath))
             {
-                var existingFileLastParsedFrame = new ProcessedFileLog(_logPath).LastParsedFrame;
+                var existingFileLastParsedFrame = new ProcessedFileLog(_logPath, _videoInfo).LastParsedFrame;
 
                 //If existing file has more converted frames, keep it
                 if (LastParsedFrame < existingFileLastParsedFrame)
@@ -315,9 +391,10 @@ namespace TennisHighlights
         /// </summary>
         public void SaveRotation()
         {
-            var log = new ProcessedFileLog(_logPath);
-
-            log.RotationDegrees = RotationDegrees;
+            var log = new ProcessedFileLog(_logPath, _videoInfo)
+            {
+                RotationDegrees = RotationDegrees
+            };
 
             log.Save();
         }
@@ -327,7 +404,7 @@ namespace TennisHighlights
         /// </summary>
         public void SaveColorSettings()
         {
-            var log = new ProcessedFileLog(_logPath);
+            var log = new ProcessedFileLog(_logPath, _videoInfo);
 
             log.CCSettings.Brightness = CCSettings.Brightness;
             log.CCSettings.Saturation = CCSettings.Saturation;
@@ -371,9 +448,31 @@ namespace TennisHighlights
                 xRallyLog.Add(rally.Serialize());
             }
 
+            var xKeypointsLog = new XElement(LogKeys.KeypointsLog);
+
+            var xForegroundPlayerKeypoints = new XElement(LogKeys.ForegroundPlayer);
+            var xBackgroundPlayerKeypoints = new XElement(LogKeys.BackgroundPlayer);
+
+            static void SerializePlayerKeypoints(Dictionary<int, PlayerFrameData> playerKeypoints, XElement xPlayerKeypoints)
+            {
+                foreach (var frameKeypoints in playerKeypoints.OrderBy(k => k.Key))
+                {
+                    xPlayerKeypoints.Add(new XElement(LogKeys.FrameKeypoints, new XAttribute(LogKeys.FrameId, frameKeypoints.Key),
+                                                                              new XAttribute(LogKeys.LeftX, frameKeypoints.Value.TopLeftCorner.X),
+                                                                              new XAttribute(LogKeys.TopY, frameKeypoints.Value.TopLeftCorner.Y),
+                                                                              new XAttribute(LogKeys.Keypoints, string.Join(";", frameKeypoints.Value.Keypoints))));
+                }
+            }
+
+            SerializePlayerKeypoints(ForegroundPlayerKeypoints, xForegroundPlayerKeypoints);
+
+            xKeypointsLog.Add(xForegroundPlayerKeypoints);
+            xKeypointsLog.Add(xBackgroundPlayerKeypoints);
+
             rootElement.Add(xFileInfo);
             rootElement.Add(xBallLog);
             rootElement.Add(xRallyLog);
+            rootElement.Add(xKeypointsLog);
 
             document.Add(rootElement);
 
