@@ -179,19 +179,13 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
         /// <param name="keypointResizeMat">The keypoint resize mat.</param>
         internal void AddFrame(int frameId, MatOfByte3 frameMat, List<ConnectedComponents.Blob> playerBlobs, MatOfByte3 keypointResizeMat)
         {
-            //Those frames are to be used by a neural net model trained on tennis moves sampled each 5 frames of 30 fps videos. 
-            //Each movement consists of 20 frame samples
             if (frameId % FramesPerSample != 0 || playerBlobs == null) { return; }
 
-            var playersBlobsSorted = playerBlobs.OrderByDescending(b => b.Area).ToList();
-
-            var foregroundBlob = playersBlobsSorted.FirstOrDefault();
-
-            Mat foregroundMat = null;
+            var foregroundBlob = playerBlobs.OrderByDescending(b => b.Area).FirstOrDefault();
 
             if (foregroundBlob != null)
             {
-                foregroundMat = GetBlobMat(frameMat, foregroundBlob);
+                var foregroundMat = GetBlobMat(frameMat, foregroundBlob);
 
                 ExtractPlayerKeypoints(frameId, foregroundMat, foregroundBlob, ForegroundPlayerFrames, keypointResizeMat);
             }

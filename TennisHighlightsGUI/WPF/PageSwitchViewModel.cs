@@ -1,7 +1,12 @@
 ﻿using System;
+using TennisHighlights;
 
 namespace TennisHighlightsGUI.WPF
 {
+    /// <summary>
+    /// The page switch view model
+    /// </summary>
+    /// <seealso cref="TennisHighlights.ViewModelBase" />
     public class PageSwitchViewModel : ViewModelBase
     {
         //It kinda looks like the typical 1280 / 720 but we need a little more horizontal space for the right column, and we don't

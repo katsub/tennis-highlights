@@ -19,7 +19,7 @@ namespace TennisHighlights
 {
     public class PoseEstimationBuilder
     {
-        public static OpenCvSharp.Size TargetSize = new OpenCvSharp.Size(224,224);
+        public static OpenCvSharp.Size TargetSize = new OpenCvSharp.Size(224, 224);
         private const string _keypointsRootKey = "Keypoints";
         private const string _pointSeparator = ";";
         private const string _moveSampleKey = "MoveSample";
