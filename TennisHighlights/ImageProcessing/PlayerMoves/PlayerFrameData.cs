@@ -1,5 +1,4 @@
-﻿using OpenCvSharp;
-namespace TennisHighlights.ImageProcessing.PlayerMoves
+﻿namespace TennisHighlights.ImageProcessing.PlayerMoves
 {
     /// <summary>
     /// The frame player
@@ -7,37 +6,29 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
     public class PlayerFrameData
     {
         /// <summary>
-        /// Gets the keypoints.
+        /// Gets the keypoints. Keypoint coordinates in the source image can be found by mulitplying their value by Scale then adding the TopLeftCorner coordinates
         /// </summary>
         internal float[] Keypoints { get; }
-        /// <summary>
-        /// Gets the blob.
-        /// </summary>
-        internal ConnectedComponents.Blob Blob { get; }
         /// <summary>
         /// Gets the top left corner.
         /// </summary>
         internal Accord.Point TopLeftCorner { get; }
+        /// <summary>
+        /// Gets the scale.
+        /// </summary>
+        internal float Scale { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PlayerFrameData"/> class.
         /// </summary>
         /// <param name="keypoints">The keypoints.</param>
-        /// <param name="blob">The blob.</param>
         /// <param name="topLeftCorner">The top left corner.</param>
-        public PlayerFrameData(float[] keypoints, ConnectedComponents.Blob blob, Accord.Point? topLeftCorner = null)
+        /// <param name="scale">The scale.</param>
+        public PlayerFrameData(float[] keypoints, Accord.Point topLeftCorner, float scale)
         {
             Keypoints = keypoints;
-            Blob = blob;
-
-            if (topLeftCorner.HasValue)
-            {
-                TopLeftCorner = topLeftCorner.Value;
-            }
-            else
-            {
-                TopLeftCorner = new Accord.Point(blob.Left, blob.Top);
-            }
-        }
+            TopLeftCorner = topLeftCorner;
+            Scale = scale;
+         }
     }
 }

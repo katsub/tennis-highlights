@@ -1,4 +1,7 @@
-﻿using TennisHighlights.Utils.PoseEstimation;
+﻿using System;
+using System.Linq;
+using TennisHighlights.Utils;
+using TennisHighlights.Utils.PoseEstimation;
 using TennisHighlights.Utils.PoseEstimation.Keypoints;
 
 namespace TennisHighlights.ImageProcessing.PlayerMoves
@@ -15,7 +18,7 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
         /// <summary>
         /// The foreground moves
         /// </summary>
-        public MoveLabel?[] ForegroundMoves { get; }
+        public MoveData[] ForegroundMoves { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PlayerMovesData"/> class.
@@ -24,15 +27,24 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
         /// <param name="foregroundMoves">The foreground moves.</param>
         public PlayerMovesData(VideoInfo videoInfo, ProcessedFileLog log)
         {
-            var foregroundMovesDico = TennisMoveDetector.GetForegroundPlayerMovesPerFrame(videoInfo, log);
-
             FramesPerSample = PlayerMovementAnalyser.GetFramesPerSample(videoInfo.FrameRate);
 
-            ForegroundMoves = new MoveLabel?[videoInfo.TotalFrames];
-
-            foreach (var move in foregroundMovesDico)
+            try
             {
-                ForegroundMoves[move.Key] = move.Value;
+                var foregroundMovesDico = TennisMoveDetector.GetForegroundPlayerMovesPerFrame(videoInfo, log);
+
+                ForegroundMoves = new MoveData[videoInfo.TotalFrames];
+
+                foreach (var move in foregroundMovesDico)
+                {
+                    ForegroundMoves[move.Key] = move.Value;
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, e.ToString());
+
+                ForegroundMoves = new MoveData[videoInfo.TotalFrames];
             }
         }
     }

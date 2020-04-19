@@ -399,7 +399,7 @@ namespace TennisHighlights.ImageProcessing
         /// </summary>
         private void SerializePlayers()
         {
-            void SerializeSinglePlayer(PlayerFrameData[] playerFrames, Dictionary<int, PlayerFrameData> logPlayerFrames)
+            static void SerializeSinglePlayer(PlayerFrameData[] playerFrames, Dictionary<int, PlayerFrameData> logPlayerFrames)
             {
                 for (int index = 0; index < playerFrames.Length; index++)
                 {

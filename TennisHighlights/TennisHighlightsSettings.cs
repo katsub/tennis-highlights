@@ -122,7 +122,7 @@ namespace TennisHighlights
         /// <summary>
         /// Gets the frames per backup.
         /// </summary>
-        public int FramesPerBackup { get; } = 300;
+        public int FramesPerBackup { get; } = 3000;
         /// <summary>
         /// Gets a value indicating whether [filter rallies by duration].
         /// </summary>

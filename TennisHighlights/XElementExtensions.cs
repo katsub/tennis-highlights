@@ -1,4 +1,5 @@
-﻿using System.Xml.Linq;
+﻿using System.Globalization;
+using System.Xml.Linq;
 
 namespace TennisHighlights
 {
@@ -27,6 +28,17 @@ namespace TennisHighlights
         public static int GetIntAttribute(this XElement xElement, string attributeName, int defaultValue = 0)
         {
             return int.TryParse(xElement.Attribute(attributeName)?.Value, out var result) ? result : defaultValue;
+        }
+
+        /// <summary>
+        /// Gets the double attribute.
+        /// </summary>
+        /// <param name="xElement">The x element.</param>
+        /// <param name="attributeName">Name of the attribute.</param>
+        /// <param name="defaultValue">The default value.</param>
+        public static double GetDoubleAttribute(this XElement xElement, string attributeName, double defaultValue = 0)
+        {
+            return double.TryParse(xElement.Attribute(attributeName)?.Value, System.Globalization.NumberStyles.Float, CultureInfo.InvariantCulture, out var result) ? result : defaultValue;
         }
 
         /// <summary>

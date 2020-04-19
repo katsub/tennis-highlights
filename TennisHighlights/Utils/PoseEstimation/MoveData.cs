@@ -8,9 +8,9 @@ namespace TennisHighlights.Utils.PoseEstimation
     public class MoveData
     {
         /// <summary>
-        /// Gets the name of the player.
+        /// Gets the speed.
         /// </summary>
-        public string PlayerName { get; }
+        public Accord.Point Speed { get; }
         /// <summary>
         /// Gets the frame identifier.
         /// </summary>
@@ -25,17 +25,17 @@ namespace TennisHighlights.Utils.PoseEstimation
         /// </summary>
         /// <param name="label">The label.</param>
         /// <param name="frameId">The frame identifier.</param>
-        /// <param name="playerName">Name of the player.</param>
-        public MoveData(MoveLabel label, int frameId, string playerName)
+        /// <param name="speed">The speed.</param>
+        public MoveData(MoveLabel label, int frameId, Accord.Point speed)
         {
             Label = label;
             FrameId = frameId;
-            PlayerName = playerName;
+            Speed = speed;
         }
 
         /// <summary>
         /// Converts to string.
         /// </summary>
-        public override string ToString() => Label + ", " + PlayerName + ", " + FrameId;
+        public override string ToString() => Label + ", " + $"({Speed.X},{Speed.Y}), " + FrameId;
     }
 }

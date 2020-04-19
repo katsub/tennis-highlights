@@ -1,7 +1,9 @@
 ﻿using OpenCvSharp;
+using OpenCvSharp.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Drawing;
 using System.Linq;
 using TennisHighlights.Utils.PoseEstimation.Keypoints;
 
@@ -51,20 +53,23 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
         /// </summary>
         /// <param name="frameId">The frame identifier.</param>
         /// <param name="playerMat">The player mat.</param>
-        /// <param name="playerRect">The player rect.</param>
         /// <param name="playerDico">The player dico.</param>
+        /// <param name="topLeftCorner">The top left corner</param>
         /// <param name="resizeMat">The resize mat.</param>
-        private bool ExtractPlayerKeypoints(int frameId, Mat playerMat, Rect playerRect, PlayerFrameData[] playerDico, Mat resizeMat)
+        public bool ExtractPlayerKeypoints(int frameId, Mat sourceMat, Mat playerMat, Accord.Point topLeftCorner, PlayerFrameData[] playerDico, Mat resizeMat)
         {            
             Cv2.Resize(playerMat, resizeMat, PoseEstimationBuilder.TargetSize, 0, 0, InterpolationFlags.Nearest);
 
             var keypoints = _keypointExtractor.GetKeypoints(resizeMat);
 
-            //ImageUtils.DrawKeypoints(keypoints, frameId + ".jpg", resizeMat);
+            ImageUtils.DrawKeypoints(keypoints, frameId + "_kp.jpg", resizeMat);
+
+            //Calculate the scale before disposing playerMat
+            var scale = (float)playerMat.Height / resizeMat.Height;
 
             playerMat.Dispose();
 
-            if (keypoints == null || AnyErrorKeypoint(keypoints)) { return false; }
+            if (keypoints == null) { return false; }
 
             var keypointsArray = new float[2 * keypoints.Count];
 
@@ -74,21 +79,10 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
                 keypointsArray[2 * i + 1] = keypoints[i].Y;
             }
 
-            playerDico[frameId / FramesPerSample] = new PlayerFrameData(keypointsArray, null, new Accord.Point(playerRect.Left, playerRect.Top));
+            playerDico[frameId / FramesPerSample] = new PlayerFrameData(keypointsArray, topLeftCorner, scale);
 
             return true;
         }
-
-        /// <summary>
-        /// Extracts the player keypoints. Returns true if the code found a keypoint, false otherwise.
-        /// </summary>
-        /// <param name="frameId">The frame identifier.</param>
-        /// <param name="playerMat">The player mat.</param>
-        /// <param name="playerBlob">The player blob.</param>
-        /// <param name="playerDico">The player dico.</param>
-        /// <param name="keypointResizeMat">The keypoint resize mat.</param>
-        private bool ExtractPlayerKeypoints(int frameId, Mat playerMat, ConnectedComponents.Blob playerBlob, PlayerFrameData[] playerDico, MatOfByte3 keypointResizeMat)
-                  => ExtractPlayerKeypoints(frameId, playerMat, new Rect(playerBlob.Left, playerBlob.Top, playerBlob.Width, playerBlob.Height), playerDico, keypointResizeMat);
 
         /// <summary>
         /// Noes the error keypoint.
@@ -115,17 +109,22 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
         }
 
         /// <summary>
-        /// Gets the blob mat.
+        /// Gets the blob mat and its top left corner
         /// </summary>
         /// <param name="frameMat">The frame mat.</param>
         /// <param name="blob">The blob.</param>
-        private MatOfByte3 GetBlobMat(MatOfByte3 frameMat, ConnectedComponents.Blob blob)
+        private (MatOfByte3 mat, Accord.Point topLeftCorner) GetBlobMat(int frameId, MatOfByte3 frameMat, ConnectedComponents.Blob blob)
         {
-            var minX = (int)(blob.Rect.Left * 0.8);
-            var maxX = (int)Math.Min(blob.Rect.Right * 1.3, frameMat.Width);
+            var refDim = 0.2d * Math.Max(blob.Width, blob.Height);
+
+            var xIncrease = refDim + Math.Max(0, (blob.Height - blob.Width) / 2);
+            var yIncrease = refDim + Math.Max(0, (blob.Width - blob.Height) / 2);
+
+            var minX = (int)Math.Max(0, blob.Rect.Left - xIncrease);
+            var maxX = (int)Math.Min(blob.Rect.Right + xIncrease, frameMat.Width);
             //The rect Bottom comments indicate the axis origin is on the top and on the left
-            var maxY = (int)Math.Min(blob.Rect.Bottom * 1.3, frameMat.Height);
-            var minY = (int)(blob.Rect.Top * 0.8);
+            var maxY = (int)Math.Min(blob.Rect.Bottom + yIncrease, frameMat.Height);
+            var minY = (int)Math.Max(blob.Rect.Top - yIncrease, 0);
 
             //Needs to be square because that the type of picture the neural net takes
             var lengthX = maxX - minX;
@@ -145,6 +144,8 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
                 minY += delta;
                 maxY -= delta;
             }
+
+            var topLeftCorner = new Accord.Point(minX, minY);
 
             lengthX = maxX - minX;
             lengthY = maxY - minY;
@@ -167,7 +168,7 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
                 }
             }
 
-            return mat;
+            return (mat, topLeftCorner);
         }
 
         /// <summary>
@@ -185,9 +186,9 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
 
             if (foregroundBlob != null)
             {
-                var foregroundMat = GetBlobMat(frameMat, foregroundBlob);
+                var (mat, topLeftCorner) = GetBlobMat(frameId, frameMat, foregroundBlob);
 
-                ExtractPlayerKeypoints(frameId, foregroundMat, foregroundBlob, ForegroundPlayerFrames, keypointResizeMat);
+                ExtractPlayerKeypoints(frameId, frameMat, mat, topLeftCorner, ForegroundPlayerFrames, keypointResizeMat);
             }
         }
     }

@@ -28,7 +28,7 @@ namespace TennisHighlights.Annotation
 
                 if (frame != null)
                 {
-                    ImageUtils.DrawText(frame, moveData.Label + " " + moveData.PlayerName, new Accord.Point(0, 30), 15, Brushes.Red);
+                    ImageUtils.DrawText(frame, moveData.Label.ToString(), new Accord.Point(0, 30), 15, Brushes.Red);
                 }
 
                 FileManager.WriteTempFile(detectedFrame.ToString("D6") + ".jpg", frame, FileManager.FrameFolder);

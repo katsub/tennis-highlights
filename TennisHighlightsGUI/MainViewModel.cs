@@ -286,6 +286,7 @@ namespace TennisHighlightsGUI
                 }
             });
 
+            /*
             OpenRallyGraphCommand = new Command((param) =>
             {
                 var rallyClassificationsFile = FileManager.ReadPersistentFile(_rallyClassificationsFileName);
@@ -304,7 +305,7 @@ namespace TennisHighlightsGUI
 
                     rallyGraphWindow.Show();
                 }
-            });
+            });*/
 
             ChooseFileCommand = new Command((param) =>
             {

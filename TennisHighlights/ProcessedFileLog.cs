@@ -1,6 +1,8 @@
 ﻿using Accord;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -34,6 +36,7 @@ namespace TennisHighlights
         public const string FrameId = "FrameId";
         public const string TopY = "TopY";
         public const string LeftX = "LeftX";
+        public const string Scale = "Scale";
         public const string FrameKeypoints = "FrameKeypoints";
         public const string ForegroundPlayer = "ForegroundPlayer";
         public const string BackgroundPlayer = "BackgroundPlayer";
@@ -195,13 +198,14 @@ namespace TennisHighlights
                             var key = xKeypoint.GetIntAttribute(LogKeys.FrameId);
                             var topY = xKeypoint.GetIntAttribute(LogKeys.TopY);
                             var leftX = xKeypoint.GetIntAttribute(LogKeys.LeftX);
+                            var scale = (float)xKeypoint.GetDoubleAttribute(LogKeys.Scale);
                             var valueString = xKeypoint.GetStringAttribute(LogKeys.Keypoints);
                             var splitValueString = valueString.Split(";");
 
                             try
                             {
                                 var value = splitValueString.Select(p => float.Parse(p)).ToArray();
-                                var playerFrameData = new PlayerFrameData(value, null, new Accord.Point(leftX,topY));
+                                var playerFrameData = new PlayerFrameData(value, new Accord.Point(leftX,topY), scale);
 
                                 playerKeypoints.Add(key, playerFrameData);
                             }
@@ -458,6 +462,7 @@ namespace TennisHighlights
                 foreach (var frameKeypoints in playerKeypoints.OrderBy(k => k.Key))
                 {
                     xPlayerKeypoints.Add(new XElement(LogKeys.FrameKeypoints, new XAttribute(LogKeys.FrameId, frameKeypoints.Key),
+                                                                              new XAttribute(LogKeys.Scale, frameKeypoints.Value.Scale.ToString(CultureInfo.InvariantCulture)),
                                                                               new XAttribute(LogKeys.LeftX, frameKeypoints.Value.TopLeftCorner.X),
                                                                               new XAttribute(LogKeys.TopY, frameKeypoints.Value.TopLeftCorner.Y),
                                                                               new XAttribute(LogKeys.Keypoints, string.Join(";", frameKeypoints.Value.Keypoints))));
