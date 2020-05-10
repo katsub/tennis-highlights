@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using TennisHighlights;
+using TennisHighlights.ImageProcessing;
 
 /// <summary>
 /// The image processing utils
@@ -14,7 +15,7 @@ public class ImageUtils
     /// <summary>
     /// Gets the keypoint links.
     /// </summary>
-    private static readonly List<(int keypoint1, int keypoint2)> _keypointLinks = new List<(int keypoint1, int keypoint2)> { 
+    public static readonly List<(int keypoint1, int keypoint2)> KeypointLinks = new List<(int keypoint1, int keypoint2)> { 
         (3,4), (2,3), (0,1), (7,6), (6,5), (2,1), (5,1), (1, 14), (14, 8), (14, 11), (8,9), (9,10), (11, 12), (12, 13) }; 
 
     /// <summary>
@@ -164,6 +165,25 @@ public class ImageUtils
                      new Font("Tahoma", size),
                      brush,
                      new PointF((float)position.X, (float)position.Y));
+    }
+
+    /// <summary>
+    /// Draws the line.
+    /// </summary>
+    /// <param name="image">The image.</param>
+    /// <param name="line">The line.</param>
+    public static void DrawLine(Bitmap image, Line line, Pen pen)
+    {
+        using (Graphics gr = Graphics.FromImage(image))
+        {
+            gr.SmoothingMode = SmoothingMode.AntiAlias;
+
+            gr.DrawLine(pen, line.Point0.X, line.Point0.Y, line.Point1.X, line.Point1.Y);
+            gr.DrawLine(pen, line.Point0.X + 1, line.Point0.Y, line.Point1.X + 1, line.Point1.Y);
+            gr.DrawLine(pen, line.Point0.X - 1, line.Point0.Y, line.Point1.X - 1, line.Point1.Y);
+            gr.DrawLine(pen, line.Point0.X, line.Point0.Y + 1, line.Point1.X, line.Point1.Y + 1);
+            gr.DrawLine(pen, line.Point0.X, line.Point0.Y - 1, line.Point1.X, line.Point1.Y - 1);
+        }
     }
 
     /// <summary>

@@ -159,7 +159,8 @@
                             Visibility="{Binding IsInDebugMode, Converter={StaticResource boolToVis}}"
                               Content="Draw gizmos" />
                     <CheckBox IsChecked="{Binding Settings.General.TrackPlayerMoves}"
-                              Content="Track player moves" />
+                                  Content="Track player moves"
+                                  ToolTip="Tracks the player moves to classify forehands and backhands if this is checked. Instable on short videos (less than 10 min)"/>
                     <CheckBox IsChecked="{Binding Settings.General.LowMemoryMode}"
                               Content="Low memory mode"
                               ToolTip="Needed if the used PC has less than 8 GB of RAM." />
@@ -212,12 +213,10 @@
                 <StackPanel Margin="0,10,0,0">
                     <Button Margin="0,10,0,0"
                             Background="LawnGreen"
+                            Content="Convert"
                             Visibility="{Binding IsConverting, Converter={StaticResource notBoolToVis}}"
                             IsEnabled="{Binding CanConvert}"
                             Command="{Binding ConvertCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Convert" />
-                        </StackPanel>
                     </Button>
                     <Button Margin="0,10,0,0"
                             Content="Cancel conversion"
@@ -231,9 +230,24 @@
                             Background="Orange"
                             Visibility="{Binding CanRegenerateRallies, Converter={StaticResource boolToVis}}"
                             Command="{Binding RegenerateRalliesCommand}" />
+                    <StackPanel Orientation="Horizontal"
+                                Margin="0,10,0,0"
+                                Visibility="{Binding CanRegenerateRallies, Converter={StaticResource boolToVis}}">
+                        <TextBlock Margin="0,2,0,0"
+                                   Text="Export "/>
+                        <Button Margin="5,0,0,0"
+                                Content="Forehands"
+                                Background="Orange"
+                                Command="{Binding ExportAllForehandsCommand}" />
+                        <Button Content="Backhands"
+                                Margin="5,0,0,0"
+                                Background="Orange"
+                                Command="{Binding ExportAllBackhandsCommand}" />
+                    </StackPanel>
                     <Button Margin="0,10,0,0"
                             Content="Estimate pose"
                             Background="DarkCyan"
+                            Visibility="{Binding IsInDebugMode, Converter={StaticResource boolToVis}}"
                             Command="{Binding EstimatePoseCommand}" />
                     <Button Margin="0,10,0,0"
                             Content="Open rally graph"

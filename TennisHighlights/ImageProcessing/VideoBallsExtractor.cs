@@ -9,7 +9,6 @@ using System.Timers;
 using TennisHighlights.Annotation;
 using TennisHighlights.ImageProcessing.PlayerMoves;
 using TennisHighlights.Utils;
-using TennisHighlights.Utils.PoseEstimation;
 
 namespace TennisHighlights.ImageProcessing
 {
@@ -127,7 +126,7 @@ namespace TennisHighlights.ImageProcessing
                 Enabled = true
             };
 
-            void onExtractionOver(int frameId,  ExtractionOverArguments args)
+            PlayerFrameData onExtractionOver(int frameId,  ExtractionOverArguments args)
             {
                 //Not thread safe, but if used only for display it's okay
                 FramesProcessed++;
@@ -139,15 +138,19 @@ namespace TennisHighlights.ImageProcessing
 
                 if (settings.General.TrackPlayerMoves)
                 {
-                    _playerMovementAnalyser.AddFrame(frameId, args.OriginalMat, args.Players, args.KeypointResizeMat);
+                    return _playerMovementAnalyser.AddFrame(frameId, args.OriginalMat, args.Players, args.KeypointResizeMat);
                 }
+
+                return null;
             }
 
             FrameBallExtractor.SetSize(_targetSize);
 
+            var framesPerSample = PlayerMovementAnalyser.GetFramesPerSample(videoInfo.FrameRate);
+
             _ballExtractors = Enumerable.Range(1, _settings.General.BallExtractionWorkers)
                                         .Select(o => new FrameBallExtractor(settings.BallDetection, settings.General.DrawGizmos, !settings.General.DisableImagePreview, 
-                                                                            settings.General.TrackPlayerMoves, onExtractionOver)).ToList();
+                                                                            settings.General.TrackPlayerMoves, framesPerSample, onExtractionOver)).ToList();
         }
 
         /// <summary>

@@ -48,7 +48,7 @@ namespace TennisHighlights
             {
                 var foregroundMove = PlayerMovesData.ForegroundMoves[i];
 
-                switch (foregroundMove.Label)
+                switch (foregroundMove?.Label)
                 {
                     case MoveLabel.Forehand:
                         ForegroundForehands++;

@@ -239,6 +239,7 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
                 var previousFrame = i > 0 ? playerFrameData[i - 1] : null;
                 var previousPreviousFrame = i > 1 ? playerFrameData[i - 2] : null;
 
+                //TODO: need to scale coordinates from body parts (each frame has its own scale) to properly measure speed
                 if (currentFrame != null && previousFrame != null)
                 {
                     if (PlayerMovementAnalyser.NoErrorKeypoint(currentFrame.Keypoints))
@@ -422,12 +423,15 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
         /// </summary>
         /// <param name="playerFrameData">The player frame data.</param>
         /// <param name="balls">The balls</param>
+        /// <param name="isLeftHanded">True if foreground player is left handed</param>
         private Dictionary<int, MoveData> DetectMovesOnPlayerAddedFrames(PlayerFrameData[] playerFrameData, Dictionary<int, List<Accord.Point>> balls)
         {
             FillWristSpeedsAndBodyParts(playerFrameData, out var leftWristSpeeds, out var rightWristSpeeds, out var detectedBodyParts);
 
-            //We suppose the wrist that is speediest most often is the one of the main hand
-            var isLeftHanded = IsLeftHanded(leftWristSpeeds, rightWristSpeeds);
+            //We suppose the wrist that is speediest most often is the one of the main hand: needs to filter from rallies so that false wrists get filtered out
+            //doesn't work well for short lengths because rallies become unreliable, might be more false positives than actual moves
+            //It's very feasible for long videos, but since it's a simple checkbox, it's just easier to check it for testing on short videos
+            var isLeftHanded = false;// IsLeftHanded(leftWristSpeeds, rightWristSpeeds);
 
             var candidateWristSpeeds = isLeftHanded ? leftWristSpeeds : rightWristSpeeds;
 

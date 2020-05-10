@@ -89,6 +89,10 @@ namespace TennisHighlights
         /// </summary>
         public ColorCorrectionSettings CCSettings { get; } = new ColorCorrectionSettings();
         /// <summary>
+        /// Gets or sets a value indicating whether [foreground player left handed].
+        /// </summary>
+        public bool ForegroundPlayerLeftHanded { get; set; }
+        /// <summary>
         /// True if color correction should be used, false otherwise.
         /// </summary>
         public bool UseColorCorrection { get; set; }

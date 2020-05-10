@@ -73,6 +73,14 @@ namespace TennisHighlightsGUI
         /// </summary>
         public Command SelectNoneCommand { get; }
         /// <summary>
+        /// Gets the order by forehand command.
+        /// </summary>
+        public Command OrderByForehandCommand { get; }
+        /// <summary>
+        /// Gets the order by backhand command.
+        /// </summary>
+        public Command OrderByBackhandCommand { get; }
+        /// <summary>
         /// Gets the play command.
         /// </summary>
         public Command PlayCommand { get; }
@@ -385,6 +393,8 @@ namespace TennisHighlightsGUI
                     _startSliderBeingDragged = value;
 
                     OnPropertyChanged(nameof(TotalDuration));
+                    OnPropertyChanged(nameof(SelectedBackhands));
+                    OnPropertyChanged(nameof(SelectedForehands));
                     OnPropertyChanged();
                 }
             }
@@ -404,6 +414,8 @@ namespace TennisHighlightsGUI
                     _stopSliderBeingDragged = value;
 
                     OnPropertyChanged(nameof(TotalDuration));
+                    OnPropertyChanged(nameof(SelectedBackhands));
+                    OnPropertyChanged(nameof(SelectedForehands));
                     OnPropertyChanged();
                 }
             }
@@ -466,6 +478,31 @@ namespace TennisHighlightsGUI
         /// </summary>
         public int SelectedRalliesCount => Rallies.Count(r => r.IsSelected);
         /// <summary>
+        /// Gets the selected forehands.
+        /// </summary>
+        public int SelectedForehands => Rallies.Where(r => r.IsSelected && r.Data.MoveStats != null).Sum(r => r.Data.MoveStats.ForegroundForehands);
+        /// <summary>
+        /// Gets the selected backhands.
+        /// </summary>
+        public int SelectedBackhands => Rallies.Where(r => r.IsSelected && r.Data.MoveStats != null).Sum(r => r.Data.MoveStats.ForegroundBackhands);
+        private bool _showMoveStats;
+        /// <summary>
+        /// Gets a value indicating whether [show move stats].
+        /// </summary>
+        public bool ShowMoveStats
+        {
+            get => _showMoveStats;
+            set
+            {
+                if (_showMoveStats != value)
+                {
+                    _showMoveStats = value;
+
+                    OnPropertyChanged();
+                }
+            }
+        }
+        /// <summary>
         /// Gets the selected rallies count.
         /// </summary>
         public int TotalRalliesCount => Rallies.Count;
@@ -501,12 +538,7 @@ namespace TennisHighlightsGUI
             Rallies.CollectionChanged += Rallies_CollectionChanged;
 
             var framesPerSample = PlayerMovementAnalyser.GetFramesPerSample(MainVM.VideoInfo.FrameRate);
-         //   var (foregroundMoves, backgroundMoves) = TennisMoveDetector.GetPlayerMovesPerFrame(MainVM.VideoInfo, MainVM.ChosenFileLog);
-
-           // var playerMovesData = new PlayerMovesData(framesPerSample, foregroundMoves, backgroundMoves);
-
-            
-
+         
             #region Commands
             ExportCommand = new Command((param) =>
             {
@@ -584,6 +616,51 @@ namespace TennisHighlightsGUI
                     rally.IsSelected = false;
                 }
             });
+
+            void OrderByMoves(bool useForehands)
+            {
+                var allRallies = Rallies.ToList();
+
+                var maxMoves = allRallies.Max(r => useForehands ? r.Data.MoveStats.ForegroundForehands 
+                                                                : r.Data.MoveStats.ForegroundBackhands);
+
+                var maxMoveRatio = allRallies.Where(r => r.Data.MoveStats.ForegroundForehands + r.Data.MoveStats.ForegroundBackhands > 0)
+                                             .Max(r => ((float)(useForehands ? r.Data.MoveStats.ForegroundForehands
+                                                                             : r.Data.MoveStats.ForegroundBackhands)) 
+                                                       / (r.Data.MoveStats.ForegroundForehands + r.Data.MoveStats.ForegroundBackhands));
+
+                double getRallyScore(MoveStats stats)
+                {
+                    var usedMove = useForehands ? stats.ForegroundForehands : stats.ForegroundBackhands;
+
+                    var totalMoves = stats.ForegroundForehands + stats.ForegroundBackhands;
+
+                    if (totalMoves > 0)
+                    {
+                        return (((double)usedMove) / maxMoves) + ((usedMove / totalMoves) / maxMoveRatio);
+                    }
+
+                    return 0d;
+                }
+
+                if (maxMoveRatio > 0)
+                {
+                    Rallies.Clear();
+
+                    var orderedRallies = allRallies.OrderByDescending(r => getRallyScore(r.Data.MoveStats));
+
+                    foreach (var rally in orderedRallies)
+                    {
+                        Rallies.Add(rally);
+                    }
+
+                    SelectedRally = Rallies.First();
+                }
+            }
+
+            OrderByForehandCommand = new Command((param) => OrderByMoves(true));
+
+            OrderByBackhandCommand = new Command((param) => OrderByMoves(false));
 
             PlayCommand = new Command((param) => { Play(); });
 
@@ -695,6 +772,8 @@ namespace TennisHighlightsGUI
             {
                 case nameof(RallyEditViewModel.IsSelected):
                     OnPropertyChanged(nameof(TotalDuration));
+                    OnPropertyChanged(nameof(SelectedBackhands));
+                    OnPropertyChanged(nameof(SelectedForehands));
                     OnPropertyChanged(nameof(SelectedRalliesCount));
                     break;
                 default:
@@ -728,13 +807,9 @@ namespace TennisHighlightsGUI
             {
                 try
                 {
-                    ColorCorrectionSettings ccSettings = null;
-
-                    if (MainVM.ChosenFileLog.UseColorCorrection) { ccSettings = MainVM.ChosenFileLog.CCSettings; }
-
                     RallyVideoCreator.BuildVideoWithAllRallies(MainVM.ChosenFileLog.Clone().Rallies.Where(r => r.IsSelected).ToList(),
-                                                               MainVM.VideoInfo, MainVM.Settings.General, MainVM.ChosenFileLog.RotationDegrees, 
-                                                               ccSettings,
+                                                               MainVM.VideoInfo, MainVM.Settings.General, MainVM.ChosenFileLog.RotationDegrees,
+                                                               MainVM.ChosenFileLog.UseColorCorrection ? MainVM.ChosenFileLog.CCSettings : null,
                                                                out var error, SendProgressInfo, () => RequestedCancel);
 
                     SendProgressInfo(new ProgressInfo(null, RequestedCancel ? 0 : 100, RequestedCancel ? "Canceled" : "Done", 0d));
@@ -776,6 +851,8 @@ namespace TennisHighlightsGUI
             {
                 Rallies.Add(new RallyEditViewModel(rallyData, DeltaFrames, _videoInfo.TotalFrames - 1, _videoInfo.FrameRate, () => MainVM.ChosenFileLog.Save()));
             }
+
+            ShowMoveStats = Rallies.FirstOrDefault()?.Data.MoveStats != null;
         }
 
         /// <summary>

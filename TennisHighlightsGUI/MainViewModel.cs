@@ -2,6 +2,7 @@
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -12,8 +13,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using TennisHighlights;
 using TennisHighlights.ImageProcessing;
-using TennisHighlights.Rallies;
+using TennisHighlights.ImageProcessing.PlayerMoves;
 using TennisHighlights.Utils;
+using TennisHighlights.Utils.PoseEstimation.Keypoints;
 using TennisHighlights.VideoCreation;
 using TennisHighlightsGUI.MultipleFiles;
 
@@ -58,6 +60,14 @@ namespace TennisHighlightsGUI
         /// Gets the multiple files command.
         /// </summary>
         public Command MultipleFilesCommand { get; }
+        /// <summary>
+        /// Gets the export all forehands command.
+        /// </summary>
+        public Command ExportAllForehandsCommand { get; }
+        /// <summary>
+        /// Gets the export all backhands command.
+        /// </summary>
+        public Command ExportAllBackhandsCommand { get; }
         /// <summary>
         /// Gets the color correction command.
         /// </summary>
@@ -261,6 +271,71 @@ namespace TennisHighlightsGUI
                 _colorCorrectionWindow.WindowState = WindowState.Normal;
             });
 
+            void ExportMoves(bool exportForehands)
+            {
+                IsConverting = true;
+
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        var labelToUse = exportForehands ? MoveLabel.Forehand : MoveLabel.Backhand;
+
+                        var playerMovesData = new PlayerMovesData(VideoInfo, ChosenFileLog);
+
+                        var moveClips = new List<RallyEditData>();
+
+                        var startStopInterval = VideoInfo.FrameRate * 1;
+
+                        var moveDictionary = playerMovesData.ForegroundMoves.ToIndexedDictionary()
+                                                                            .ToDictionary(k => k.Key * playerMovesData.FramesPerSample, k => k.Value);
+
+                        var i = 0;
+                        foreach (var move in moveDictionary.Where(m => m.Value.Label == labelToUse 
+                                                                       && ChosenFileLog.Rallies.Any(r => r.Start <= m.Key && r.Stop >= m.Key))
+                                                           .OrderBy(m => m.Value.Speed.SquaredLength()))
+                        {
+                            var startFrame = (int)Math.Max(0, move.Key - startStopInterval);
+                            var stopFrame = (int)Math.Min(VideoInfo.TotalFrames, move.Key + startStopInterval);
+
+                            moveClips.Add(new RallyEditData(i.ToString(), startFrame, stopFrame));
+                            i++;
+                        }
+
+                        if (moveClips.Any())
+                        {
+                            RallyVideoCreator.BuildVideoWithAllRallies(moveClips,
+                                                                       VideoInfo, Settings.General, ChosenFileLog.RotationDegrees,
+                                                                       ChosenFileLog.UseColorCorrection ? ChosenFileLog.CCSettings : null,
+                                                                       out var error, SendProgressInfo, () => RequestedCancel);
+                        }
+
+                        SendProgressInfo(new ProgressInfo(null, RequestedCancel ? 0 : 100, RequestedCancel ? "Canceled" : "Done", 0d));
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show("An error has been encountered in the conversion:\n\n" + e.ToString());
+                    }
+                    finally
+                    {
+                        try
+                        {
+                            if (Settings.General.BeepWhenFinished)
+                            {
+                                PlayConversionOverSound();
+                            }
+                        }
+                        catch { }
+
+                        IsConverting = false;
+                        CancelRequestHandled();
+                    }
+                });
+            }
+
+            ExportAllForehandsCommand = new Command((param) => ExportMoves(true));
+            ExportAllBackhandsCommand = new Command((param) => ExportMoves(false));
+
             RegenerateRalliesCommand = new Command((param) =>
             {
                 var result = MessageBox.Show("This will restore all rallies to their original start-stop points from when they were extracted. Are you sure?", "Warning", MessageBoxButton.YesNo);
@@ -390,7 +465,7 @@ namespace TennisHighlightsGUI
 
                     if (result == MessageBoxResult.Yes)
                     {
-                        var uri = "https://drive.google.com/uc?export=download&confirm=YNtK&id=1xhVSPUTBS33BIQJQzx_SVrpls0LTtPas";
+                        var uri = "https://www.dropbox.com/s/scethcc65cqyh2s/pose_iter_160000.caffemodel?raw=1";
 
                         var webClient = new WebClient();
 

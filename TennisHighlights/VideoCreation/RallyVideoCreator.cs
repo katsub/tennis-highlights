@@ -32,7 +32,7 @@ namespace TennisHighlights.VideoCreation
                 var currentRally = rallies[j];
                 var previousRally = rallies[j - 1];
 
-                if (currentRally.Start <= previousRally.Stop)
+                if (currentRally.Start <= previousRally.Stop && currentRally.Start >= previousRally.Start)
                 {
                     previousRally.Stop = currentRally.Stop;
                     rallies.RemoveAt(j);

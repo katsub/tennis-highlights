@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using TennisHighlights.Annotation;
 using TennisHighlights.ImageProcessing;
+using TennisHighlights.ImageProcessing.PlayerMoves;
 using TennisHighlights.Utils.PoseEstimation.Keypoints;
 
 namespace TennisHighlights
@@ -20,6 +21,10 @@ namespace TennisHighlights
         /// The keypoint extractor
         /// </summary>
         private readonly KeypointExtractor _keypointExtractor = new KeypointExtractor();
+        /// <summary>
+        /// The frames per sample
+        /// </summary>
+        private readonly int _framesPerSample;
         /// <summary>
         /// The print ball detection gizmos
         /// </summary>
@@ -51,7 +56,7 @@ namespace TennisHighlights
         /// <summary>
         /// The on extraction over
         /// </summary>
-        private readonly Action<int, ExtractionOverArguments> _onExtractionOver;
+        private readonly Func<int, ExtractionOverArguments, PlayerFrameData> _onExtractionOver;
         /// <summary>
         /// The current frame identifier
         /// </summary>
@@ -172,15 +177,17 @@ namespace TennisHighlights
         /// <param name="drawGizmos">if set to <c>true</c> [draw gizmos].</param>
         /// <param name="trackPlayerMoves">if set to true, tracks player moves.</param>
         /// <param name="drawPreviews">if set to <c>true</c> [draw previews].</param>
+        /// <param name="framesPerSample">The frames per sample</param>
         /// <param name="onExtractionOver">The on extraction over.</param>
-        public FrameBallExtractor(BallDetectionSettings settings, bool drawGizmos, bool drawPreviews, bool trackPlayerMoves,
-                                  Action<int, ExtractionOverArguments> onExtractionOver)
+        public FrameBallExtractor(BallDetectionSettings settings, bool drawGizmos, bool drawPreviews, bool trackPlayerMoves, int framesPerSample,
+                                  Func<int, ExtractionOverArguments, PlayerFrameData> onExtractionOver)
         {
             _trackPlayerMoves = trackPlayerMoves;
             _drawGizmos = drawGizmos;
             _drawPreviews = drawPreviews;
             _settings = settings;
             _onExtractionOver = onExtractionOver;
+            _framesPerSample = framesPerSample;
 
             if (_drawGizmos || _drawPreviews)
             {
@@ -306,7 +313,7 @@ namespace TennisHighlights
         /// <summary>
         /// Extracts the balls from the assigned current mat.
         /// </summary>
-        public List<Accord.Point> Extract(out Mat gizmoMat, out List<ConnectedComponents.Blob> playerBlobs)
+        public List<Accord.Point> Extract(out MatOfByte3 gizmoMat, out List<ConnectedComponents.Blob> playerBlobs)
         {
             playerBlobs = null;
             gizmoMat = null;
@@ -472,7 +479,7 @@ namespace TennisHighlights
                 ExtractionArguments.OnGizmoDrawn(frame);
             }
 
-            _onExtractionOver(frameId, new ExtractionOverArguments(balls, playersBlobs, ExtractionArguments.CurrentMat, _keypointExtractionResizeMat, _keypointExtractor));
+            var playerFrameData = _onExtractionOver(frameId, new ExtractionOverArguments(balls, playersBlobs, ExtractionArguments.CurrentMat, _keypointExtractionResizeMat, _keypointExtractor));
 
             //Setting arguments to null will make IsBusy false, signaling that this frame can be disposed, and that this extractor is available for
             //a new extraction
@@ -481,10 +488,13 @@ namespace TennisHighlights
 
             if (_drawGizmos && gizmoMat != null)
             {
-                //Copy must be done immediately, otherwise the arguments might change and it'll copy something else
-                var frame = BitmapConverter.ToBitmap(gizmoMat);
+                if (!_trackPlayerMoves || frameId % _framesPerSample == 0)
+                {
+                    //Copy must be done immediately, otherwise the arguments might change and it'll copy something else
+                    var frame = BitmapConverter.ToBitmap(gizmoMat);
 
-                Task.Run(() => GizmoDrawer.DrawGizmosAndSaveImage(frame, frameId, balls));
+                    Task.Run(() => GizmoDrawer.DrawGizmosAndSaveImage(frame, frameId, balls, playerFrameData));
+                }
             }
         }
 

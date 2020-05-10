@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Linq;
 using TennisHighlights.Utils;
 using TennisHighlights.Utils.PoseEstimation;
-using TennisHighlights.Utils.PoseEstimation.Keypoints;
 
 namespace TennisHighlights.ImageProcessing.PlayerMoves
 {

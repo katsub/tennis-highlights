@@ -56,7 +56,7 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
         /// <param name="playerDico">The player dico.</param>
         /// <param name="topLeftCorner">The top left corner</param>
         /// <param name="resizeMat">The resize mat.</param>
-        public bool ExtractPlayerKeypoints(int frameId, Mat sourceMat, Mat playerMat, Accord.Point topLeftCorner, PlayerFrameData[] playerDico, Mat resizeMat)
+        public PlayerFrameData ExtractPlayerKeypoints(int frameId, Mat playerMat, Accord.Point topLeftCorner, PlayerFrameData[] playerDico, Mat resizeMat)
         {            
             Cv2.Resize(playerMat, resizeMat, PoseEstimationBuilder.TargetSize, 0, 0, InterpolationFlags.Nearest);
 
@@ -69,7 +69,7 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
 
             playerMat.Dispose();
 
-            if (keypoints == null) { return false; }
+            if (keypoints == null) { return null; }
 
             var keypointsArray = new float[2 * keypoints.Count];
 
@@ -79,9 +79,11 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
                 keypointsArray[2 * i + 1] = keypoints[i].Y;
             }
 
-            playerDico[frameId / FramesPerSample] = new PlayerFrameData(keypointsArray, topLeftCorner, scale);
+            var playerFrameData = new PlayerFrameData(keypointsArray, topLeftCorner, scale);
 
-            return true;
+            playerDico[frameId / FramesPerSample] = playerFrameData;
+
+            return playerFrameData;
         }
 
         /// <summary>
@@ -178,9 +180,9 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
         /// <param name="frameMat">The frame mat.</param>
         /// <param name="playerBlobs">The player blobs.</param>
         /// <param name="keypointResizeMat">The keypoint resize mat.</param>
-        internal void AddFrame(int frameId, MatOfByte3 frameMat, List<ConnectedComponents.Blob> playerBlobs, MatOfByte3 keypointResizeMat)
+        internal PlayerFrameData AddFrame(int frameId, MatOfByte3 frameMat, List<ConnectedComponents.Blob> playerBlobs, MatOfByte3 keypointResizeMat)
         {
-            if (frameId % FramesPerSample != 0 || playerBlobs == null) { return; }
+            if (frameId % FramesPerSample != 0 || playerBlobs == null) { return null; }
 
             var foregroundBlob = playerBlobs.OrderByDescending(b => b.Area).FirstOrDefault();
 
@@ -188,8 +190,10 @@ namespace TennisHighlights.ImageProcessing.PlayerMoves
             {
                 var (mat, topLeftCorner) = GetBlobMat(frameId, frameMat, foregroundBlob);
 
-                ExtractPlayerKeypoints(frameId, frameMat, mat, topLeftCorner, ForegroundPlayerFrames, keypointResizeMat);
+                return ExtractPlayerKeypoints(frameId, mat, topLeftCorner, ForegroundPlayerFrames, keypointResizeMat);
             }
+
+            return null;
         }
     }
 }

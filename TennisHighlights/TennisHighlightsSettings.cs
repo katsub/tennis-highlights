@@ -79,6 +79,7 @@ namespace TennisHighlights
                 }
             }
         }
+
         /// <summary>
         /// The multiple files paths
         /// </summary>
@@ -266,7 +267,7 @@ namespace TennisHighlights
             xElement.AddElementWithValue(SettingsKeys.RallyPlaySpeed, RallyPlaySpeed);
             xElement.AddElementWithValue(SettingsKeys.LowMemoryMode, LowMemoryMode);
             xElement.AddElementWithValue(SettingsKeys.TrackPlayerMoves, TrackPlayerMoves);
-
+         
             return xElement;
         }
 

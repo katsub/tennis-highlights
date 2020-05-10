@@ -4,6 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
+using TennisHighlights.ImageProcessing;
+using TennisHighlights.ImageProcessing.PlayerMoves;
 using TennisHighlights.Utils.PoseEstimation;
 using TennisHighlights.Utils.PoseEstimation.Keypoints;
 
@@ -45,7 +48,7 @@ namespace TennisHighlights.Annotation
         /// <param name="balls">The balls.</param>
         /// <param name="candidateBalls">The candidate balls.</param>
         /// <param name="players">The players.</param>
-        public static void DrawGizmosAndSaveImage(Bitmap drawFrame, int i, List<Accord.Point> balls)
+        public static void DrawGizmosAndSaveImage(Bitmap drawFrame, int i, List<Accord.Point> balls, PlayerFrameData playerFrameData)
         {
             ImageUtils.DrawRectangles(drawFrame, new List<Boundary>() { new Boundary(0, 60, 0, 20) }, null, Brushes.White);
             ImageUtils.DrawText(drawFrame, i.ToString(), new Accord.Point(0, 0), 15, Brushes.Red);
@@ -53,6 +56,23 @@ namespace TennisHighlights.Annotation
             if (balls != null)
             {
                 ImageUtils.DrawCircles(drawFrame, balls, 4, Brushes.Red);
+            }
+
+            if (playerFrameData != null)
+            {
+                var keypoints = new List<Accord.Point>();
+
+                for (int j = 0; j < 15; j++)
+                {
+                    keypoints.Add(playerFrameData.TopLeftCorner + new Accord.Point(playerFrameData.Keypoints[2* j], playerFrameData.Keypoints[2 * j+1]).Multiply(playerFrameData.Scale));
+                }
+
+                ImageUtils.DrawCircles(drawFrame, keypoints, 7, Brushes.Yellow);
+
+                foreach (var (keypoint1, keypoint2) in ImageUtils.KeypointLinks)
+                {
+                    ImageUtils.DrawLine(drawFrame, new Line(keypoints[keypoint1], keypoints[keypoint2]), Pens.Yellow);
+                }
             }
 
             FileManager.WriteTempFile(i.ToString("D6") + ".jpg", drawFrame, FileManager.FrameFolder);
